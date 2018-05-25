@@ -1,0 +1,39 @@
+x 	Loop (songs)
+
+x	volume
+
+?	Sampler is coming out of this too...
+
+x	Package an audio file in the thing
+
+-	loading a directory
+
+	highlight the right thing
+
+	switch between console and window modes
+
+	formats
+		ogg, mp3?, flac, speex
+
+	termios stuff
+		TIOCGWINSZ - struct winsize *argp
+
+	miniature wave forms
+
+	audio progress (send data to sockets, let PS2 read them)  
+
+	add an option to convert files from here?	
+
+
+https://github.com/vurtun/nuklear
+
+https://github.com/richgel999/miniz
+
+https://github.com/nemequ/munit
+
+https://github.com/nothings/stb
+
+
+
+Direct Frame Buffer Stuff
+http://www.cubieforums.com/index.php?topic=33.0
