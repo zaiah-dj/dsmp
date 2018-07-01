@@ -7,19 +7,18 @@ VERSION = 0.2
 MANPREFIX = ${PREFIX}/share/man
 LDDIRS = -L$(PREFIX)/lib
 LDFLAGS = -lSDL -lm
-DFLAGS = -DENABLE_VERSION_BANNER -DVERSION="$(VERSION)" -DPRINT_ANIMATION_INFO #-DPLAY_EMBEDDED
+DFLAGS = -DSQROOGE_H -DENABLE_VERSION_BANNER -DVERSION="$(VERSION)" -DPRINT_ANIMATION_INFO #-DPLAY_EMBEDDED
 CC = gcc
 CFLAGS = -g -Wall -Werror -Wno-maybe-uninitialized -Wno-unused -ansi -std=c99 -Wno-deprecated-declarations -O2 -pedantic-errors $(LDDIRS) $(LDFLAGS) $(DFLAGS) -Wno-strict-aliasing -Wno-format-truncation
 FLAGS = -p dte.wav -l -f 60 
-
 IGNORE = $(ALIAS) archive/* bin/* tools/* vendor/* wk/*
 ARCHIVEDIR = ..
 ARCHIVEFMT = gz
 ARCHIVEFILE = $(NAME).`date +%F`.`date +%H.%M.%S`.tar.${ARCHIVEFMT}
 
 $(NAME): ${OBJ}
-	@echo CC -o $@ ${OBJ} ${CFLAGS}
-	@${CC} -o $@ ${OBJ} ${CFLAGS}
+	@echo CC -o $@ single.o main.o ${CFLAGS}
+	@${CC} -o $@ single.o main.o ${CFLAGS}
 
 debug:
 	@gdb 2>/dev/null || echo "Error: Dependency 'GDB' not present!"; gdb
@@ -47,28 +46,6 @@ veryclean:
 	-find -type f -name "*.swp" | xargs rm
 	-find -type f -name "*.swn" | xargs rm
 	-find -type f -name "*.swl" | xargs rm
-
-permissions:
-	@find | grep -v './tools' | grep -v './examples' | grep -v './.git' | sed '1d' | xargs stat -c 'chmod %a %n' > PERMISSIONS
-
-restore-permissions:
-	chmod 744 PERMISSIONS
-	./PERMISSIONS
-	chmod 644 PERMISSIONS
-
-backup:
-	@echo tar chzf $(ARCHIVEDIR)/${ARCHIVEFILE} --exclude-backups \
-		`echo $(IGNORE) | sed '{ s/^/--exclude=/; s/ / --exclude=/g; }'` ./*
-	@tar chzf $(ARCHIVEDIR)/${ARCHIVEFILE} --exclude-backups \
-		`echo $(IGNORE) | sed '{ s/^/--exclude=/; s/ / --exclude=/g; }'` ./*
-
-archive: ARCHIVEDIR = archive
-archive: backup
-
-commit:
-	git add .
-	git commit -m "Changes made."
-#	git push 
 
 install:
 	@cp dsmp $(PREFIX)/bin/ 
