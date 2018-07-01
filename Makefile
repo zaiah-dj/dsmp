@@ -65,6 +65,9 @@ commit:
 	git commit -m "Changes made."
 #	git push 
 
+install:
+	@cp dsmp $(PREFIX)/bin/ 
+
 doc:
 	git checkout gh-pages
 	git show `git show-ref master --heads --hash`:README.md > index.html
