@@ -1,4 +1,20 @@
-x 	Loop (songs)
+	Put this in the new bug tracker
+	
+ 	Volume needs to be fixed like hell
+		
+	A slightly better interface needs to be done
+		
+	Underruns still occur on a 16GBRAM, 2Ghz Proccessor, something is wrong this pictur
+
+	Branches should have already been split up into a GUI, Video, Visualizer, Regular Audio Branch, Sampler tech
+
+	Support ogg 
+
+	Support mp3
+	
+	Support flac
+
+x Loop (songs)
 
 x	volume
 
@@ -6,7 +22,7 @@ x	volume
 
 x	Package an audio file in the thing
 
--	loading a directory
+x	loading a directory
 
 	highlight the right thing
 

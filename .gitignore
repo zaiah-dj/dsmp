@@ -1,0 +1,23 @@
+# Exclude all binary, all the time
+*.wav
+*.mp3
+*.ogg
+*.flac
+*.o
+*.swp
+*.swo
+*.swn
+*.exe
+*.png
+*.bmp
+*.jpg
+*.jpeg
+
+# Except when in the img/ folder 
+!img/*
+
+# Always keep favicon around too
+!favicon.ico
+
+# Never track the binary if it's been built
+dsmp

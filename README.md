@@ -1,18 +1,19 @@
 dsmp
 ----
-Dead simple music player.  It should just work.  But it uses SDL.  Cuz I'm lazy.
+Simple command line media player that uses SDL for audio sequencing.
+
 
 ## Usage
 
-Here is the complete list of options thus far:
-<pre>
-<code>
--l, --loop               Enable looping. 
--d, --dir (arg)          Choose audio files from $dir.
--p, --play (arg)         Play a file on the command line.
--x, --no-fork (arg)      Use $arg resolution.
-</code>
-</pre>
+Here is the complete list of CLI options thus far:
+
+| Flag                 |  Description
+| ---------------------|------------------------------------------
+|-l, --loop            |  Enable looping. 
+|-d, --dir (arg)       |  Choose audio files from $dir.
+|-p, --play (arg)      |  Play a file on the command line.
+|-x, --no-fork (arg)   |  Use $arg resolution.
+
 
 Within the app, there are a few simple controls:
 
@@ -27,26 +28,38 @@ Within the app, there are a few simple controls:
 | j         | Move to the next song in a directory.    |  
 | k         | Move to the previous song in a directory.|  
 
-</p>
 
 
 ## Screenshots
+
+![Pretty Colors]( "img/icon.png" )
+
 
 
 ## Extension and Hacking
 
 Flags that are supported:
-<pre>
-<code>
--DENABLE_VERSION_BANNER - Turns version announcement on or off.
--DPLAY_EMBEDDED         - Use embedded audio instead of an external audio file.
-</code>
-</pre>
+
+| Flag      | Description
+| ----------|------------------------------------------
+|-DENABLE_VERSION_BANNER | Turns version announcement on or off.
+|-DPLAY_EMBEDDED         | Use embedded audio instead of an external audio file.
+
+
 
 ## Caveats
+
+Sadly, there are a few right now and the list will be maintained at:
+
+[Bug List]( http://ramarcollins.com/dsmp/bugs.html )
+
+Since I don't have time to get to it right now, let's maintain it here:
+- Crashes on skip forward and backward
+- Cannot play anything but WAV files, this is not good
+- Get rid of SDL dependency	
 
 
 
 <!-- Style and more... -->
-<link rel="stylesheet" type=text/css href="index.css">
+<link rel="stylesheet" type=text/css href="dsmp.css">
 <link rel="stylesheet" type=text/css href="https://fonts.googleapis.com/css?family=Righteous">
