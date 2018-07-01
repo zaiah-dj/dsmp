@@ -1,13 +1,9 @@
-<html>
-<head>
-<link rel="stylesheet" type=text/css href="index.css">
-<link rel="stylesheet" type=text/css href="https://fonts.googleapis.com/css?family=Righteous">
-</head>
-<h1>dsmp</h1>
+dsmp
+----
 Dead simple music player.  It should just work.  But it uses SDL.  Cuz I'm lazy.
 
-<h2>Usage</h2>
-<p>
+## Usage
+
 Here is the complete list of options thus far:
 <pre>
 <code>
@@ -17,13 +13,10 @@ Here is the complete list of options thus far:
 -x, --no-fork (arg)      Use $arg resolution.
 </code>
 </pre>
-</p>
-
-<p>
 
 Within the app, there are a few simple controls:
 
-| Command   | ?                                        |
+| Command   | Description                              |
 | ----------|------------------------------------------|
 | p         | Pause playing audio.                     |  
 | a         | Seek backwards in a song.                |  
@@ -37,16 +30,11 @@ Within the app, there are a few simple controls:
 </p>
 
 
-<h2>Screenshots</h2>
-<p>
-</p>
+## Screenshots
 
 
-<h2>Extension and Hacking</h2>
-<p>
-</p>
+## Extension and Hacking
 
-<p>
 Flags that are supported:
 <pre>
 <code>
@@ -54,12 +42,11 @@ Flags that are supported:
 -DPLAY_EMBEDDED         - Use embedded audio instead of an external audio file.
 </code>
 </pre>
-</p>
+
+## Caveats
 
 
-<h2>Caveats</h2>
-<p>
-</p>
 
-
-</html>
+<!-- Style and more... -->
+<link rel="stylesheet" type=text/css href="index.css">
+<link rel="stylesheet" type=text/css href="https://fonts.googleapis.com/css?family=Righteous">
