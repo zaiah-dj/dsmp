@@ -21,3 +21,7 @@
 
 # Never track the binary if it's been built
 dsmp
+
+# Dumps
+*stackdump
+vgcore*

@@ -1,16 +1,15 @@
-# vis - <description>
-include config.mk
-
+# dsmp - Simple media player
 NAME = dsmp
-SRC = opt.c vorbis.c single.c main.c
+SRC = vendor/single.c main.c
 OBJ = ${SRC:.c=.o}
-
-DBGCHK = gdb 
-DBGFLAGS = -ex run --args
-
-LEAKCHK = valgrind
-LEAKFLAGS = --leak-check=full 
-
+PREFIX = /usr/local
+VERSION = 0.2
+MANPREFIX = ${PREFIX}/share/man
+LDDIRS = -L$(PREFIX)/lib
+LDFLAGS = -lSDL -lm
+DFLAGS = -DENABLE_VERSION_BANNER -DVERSION="$(VERSION)" -DPRINT_ANIMATION_INFO #-DPLAY_EMBEDDED
+CC = gcc
+CFLAGS = -g -Wall -Werror -Wno-maybe-uninitialized -Wno-unused -ansi -std=c99 -Wno-deprecated-declarations -O2 -pedantic-errors $(LDDIRS) $(LDFLAGS) $(DFLAGS) -Wno-strict-aliasing -Wno-format-truncation
 FLAGS = -p dte.wav -l -f 60 
 
 IGNORE = $(ALIAS) archive/* bin/* tools/* vendor/* wk/*
@@ -23,10 +22,16 @@ $(NAME): ${OBJ}
 	@${CC} -o $@ ${OBJ} ${CFLAGS}
 
 debug:
-	$(DBGCHK) $(DBGFLAGS) ./$(NAME) $(FLAGS)
+	@gdb 2>/dev/null || echo "Error: Dependency 'GDB' not present!"; gdb
+	@echo gdb -ex run --args ./$(NAME) $(FLAGS)
+	@gdb -ex run --args ./$(NAME) $(FLAGS)
 
 leak:
 	$(LEAKCHK) $(LEAKFLAGS) ./$(NAME) $(FLAGS)
+	@valgrind 2>/dev/null || echo "Error: Dependency 'Valgrind' not present!"; valgrind
+	@test -f PeaktimeFunk.wav || echo "File 'PeaktimeFunk.wav' not found."; test -f PeaktimeFunk.wav
+	@echo valgrind --leak-check=full ./$(NAME) -f PeaktimeFunk.wav 
+	@valgrind --leak-check=full ./$(NAME) -f PeaktimeFunk.wav
 
 .c.o:
 	@echo CC $<

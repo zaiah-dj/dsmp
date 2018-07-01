@@ -1,40 +1,46 @@
-/*single.c - 
+/* ------------------------------------------- * 
+single.c
+========
 A two-file library for common things in C (and eventually C++)
 
 LICENSE
 -------
 
+DOCUMENTATION
+-------------
 
-Documentation:
---------------
-
-
-Tests:
-------
-
-TODO:
+TESTS
 -----
-Package a tool to create documentation here.
 
+TODO
+----
+Package a tool to create documentation here.
 Package a way to build tests here.
 
-*/
+ * ------------------------------------------- */
+
 #include "single.h"
+
+//This flag is here to control how table counts work...
 
 static const unsigned int lt_hash = 31;
 
-static const char *__errors[] = 
+unsigned int __lt_int = 0;
+
+#ifndef ERR_H
+static const char *__SingleLibErrors[] = 
 {
   [ERR_NONE] = "No errors",
 
 #ifndef BUFF_H
-  /*Buffer*/
   [ERR_BUFF_ALLOC_FAILURE] = "Buffer allocation failure",
   [ERR_BUFF_REALLOC_FAILURE] = "Buffer reallocation failure",
   [ERR_BUFF_OUT_OF_SPACE] = "Fixed buffer is out of space.",
 #endif
+
 #ifndef PARSELY_H 
 #endif
+
 #ifndef TAB_H 
 	[ERR_LT_ALLOCATE]         = "Failed to allocate space for Table",
 	[ERR_LT_OUT_OF_SPACE]     = "Out of space",
@@ -48,11 +54,19 @@ static const char *__errors[] =
 #ifndef RENDER_H 
 #endif
  
-#ifndef SQROOGE_H 
+#ifndef SQROOGE_H
   [ERR_DB_OPEN]         = "Failed to open database." ,
+  [ERR_DB_UNINITIALIZED]= "Attempt to open uninitialized database." ,
+  [ERR_DB_NO_QUERY]     = "No SQL query specified." ,
   [ERR_DB_CLOSE]        = "Failed to close database." ,
-  [ERR_DB_PREPARE_STMT] = "Failed to prepare database statement." ,
-  [ERR_DB_BIND_VALUE]   = "Failed to bind value." ,
+  [ERR_DB_COLUMN_MAX]   = "Current library does not support more than 127 columns." ,
+  [ERR_DB_COLUMN_ADD]   = "Failed to add column [%s] to header." ,
+  [ERR_DB_ZERO_TERM]    = "Failed to add zero terminator to header." ,
+  [ERR_DB_ADD_VALUE]    = "Failed to add value to result set." ,
+  [ERR_DB_ADD_TERM]     = "Failed to add %s terminator to result set." ,
+  [ERR_DB_RESULT_INIT]  = "Failed to initialized result set." ,
+  [ERR_DB_PREPARE_STMT] = "Failed to prepare database statement: %s. %s." ,
+  [ERR_DB_BIND_VALUE]   = "Failed to bind value at position %d in statement '%s'" ,
   [ERR_DB_STEP]         = "Failed to execute statement." ,
   [ERR_DB_BIND_LONG]    = "Error binding SQL %s at position %d: %s." ,
 #endif
@@ -63,13 +77,34 @@ static const char *__errors[] =
 #ifndef TIMER_H 
 	[ERR_LITE_TIMER_ERROR]        = "Timer error occurred!\n" ,
 #endif
+
 #ifndef OPT_H 
-	[ERR_LITE_OPT_EXPECTED_ANY]   = "Expected argument after flag %s\n" ,
-	[ERR_LITE_OPT_EXPECTED_STRING]= "Expected string after flag %s\n" ,
-	[ERR_LITE_OPT_EXPECTED_NUMBER]= "Expected number after flag %s\n" ,
+	[ERR_OPT_UNINITIALIZED]  = "Option module uninitialized\n",
+	[ERR_OPT_TOO_LONG]                  = "Option flag too long\n",
+	[ERR_OPT_UNEXPECTED_FLAG]           = "Received unexpected flag: %s\n",
+	[ERR_OPT_UNEXPECTED_ARGUMENT]       = "Received unexpected argument\n",
+	[ERR_OPT_EXPECTED_ANY]              = "Expected argument after flag %s\n" ,
+	[ERR_OPT_EXPECTED_STRING_ARG]       = "Expected string after flag %s\n" ,
+	[ERR_OPT_EXPECTED_NUMERIC_ARG]      = "Expected number after flag %s\n" ,
+	[ERR_OPT_VALIDATION_FAILED]         = "Validation failed.\n" ,
 #endif
+
 #ifndef SOCKET_H 
+	[ERR_SOCKET_EXPECTED_ANY]  = "...",
+	[ERR_SOCKET_EXPECTED_STRING] = "...",
+	[ERR_SOCKET_EXPECTED_NUMBER] = "...",
+	[ERR_SOCKET_CREATE] = "Could not create open new socket for communication: %s\n",
+	[ERR_SOCKET_GETADDRINFO] = "Could not get address info for uri: %s\n",
+	[ERR_SOCKET_INVALID_PROTOCOL] = "Invalid protocol specified: %s\n",
+	[ERR_SOCKET_BIND] = "Could not bind to socket: %s\n",
+	[ERR_SOCKET_LISTEN] = "Could not listen to socket: %s\n",
+	[ERR_SOCKET_CONNECT] = "Could not connect to server: %s\n",
+	[ERR_SOCKET_CONNECT_PARENT] = "Attempt to close parent socket file failed: %s\n",
+	[ERR_SOCKET_TCP_WRITE] = "Failed to send all data: %s\n",
+	[ERR_SOCKET_TCP_READ] = "Failed to send all data: %s\n",
+	[ERR_SOCKET_INVALID_PORT_NUMBER] = "Got invalid port number: %d\n",
 #endif
+
 #ifndef SINW_H
 	[ERR_POLL_INITIAL_ALLOCATOR]        = "File allocation failure.\n",
 	[ERR_POLL_TOO_MANY_FILES]           = "Attempt to open too many files.\n",
@@ -115,7 +150,7 @@ static const char *__errors[] =
 #endif
 	[ERR_ERR_INDEX_MAX]        = "No errors",
 };
-
+#endif
 
 #ifndef UTIL_H
 //lf_         - an iterator for reading files sequentially
@@ -126,7 +161,15 @@ static const char *__errors[] =
 //Extract a hostname from a hostname string
 
 
-//Return a hash code with a block of memory
+//@title: lt_hashu
+//@args
+//	unsigned char *ustr - Unsigned character data 
+//	int len	            - Length of said character data
+//	int size            - How big should the hash string be?
+//@end 
+//@body
+//	Return a hash code with a block of memory
+//@end 
 static int lt_hashu (unsigned char *ustr, int len, int size)
 {
 	unsigned int hash=lt_hash;
@@ -205,8 +248,8 @@ const char *str_combine ( Buffer *b, const char *delim, ... )
 }
 
 
-//Combine a string using varargs and buff
 
+//Combine a string using varargs and buff
 char *strcmbm ( const char *delim, ... )
 {
 	int a = 1, s = 0;
@@ -263,8 +306,6 @@ int load_file2 (uint8_t *dest, const char *file, int *size)
 
 
 
-
-
 //Here is a far better file load function which utilizes buffers
 //I need an iterator function, especially for chunked-encoding
 int load_file (Buffer *dest, const char *file, int *size)
@@ -318,7 +359,10 @@ unsigned char *trim (uint8_t *msg, char *trim, int len, int *nlen)
 	return m;
 }
 
+
 #ifndef OPT_H
+static char opt_errmsg[ ERRV_LENGTH ] = { 0 };
+
 //Set values when the user asks for them
 static _Bool opt_set_value (char **av, Value *v, char type, char *err) 
 {
@@ -412,22 +456,72 @@ Value opt_get (Option *opts, const char *flag)
 
 //Evaluate options that the user gave and die with a message
 _Bool opt_eval (Option *opts, int argc, char **av) {
-	/*Evaulate options*/
-	char buf[1024]={0};
-	while (*av) {
-		Option *o=opts;
-		while (!o->sentinel) {
+	char buf[1024] = { 0 };
+
+	while ( *av ) {
+		Option *o = opts;
+		while ( !o->sentinel ) {
 			//Find option, set boolean, and run a validator callback
-			if ((o->sht && strcmp(*av, o->sht) == 0) || (o->lng && strcmp(*av, o->lng) == 0)) {
-				o->set=1;
-				if (o->callback) {
-					if (!o->callback(++av, &o->v, buf))
-						return 0;
+			if ( (o->sht && strcmp(*av, o->sht) == 0) || (o->lng && strcmp(*av, o->lng) == 0) ) {
+				o->set = 1;
+				if ( o->callback ) {
+					if ( !o->callback( ++av, &o->v, buf ) ) {
+						//NOTE: This is stupid, but the user will have no need for the Option array if an error occurs.
+						o = &opts[0];
+						o->errmsg = opt_errmsg;
+						return serr( ERR_OPT_VALIDATION_FAILED, o, NULL );
+					}
 				}
-				else if (o->type == 'n' || o->type == 's' || o->type == 'c') {
-					if (!opt_set_value(av, &o->v, o->type, buf)) {
-						//errprintf(buf);
-						return 0;
+				else if ( o->type == 'n' || o->type == 's' || o->type == 'c' ) {
+					//Move all args up
+					++av;
+
+					//Why would this ever be?
+					if ( !(*av) ) {
+						o = &opts[0];
+						o->errmsg = opt_errmsg;
+						return serr( ERR_OPT_EXPECTED_ANY, o, NULL );
+					}
+
+					//Catch what may be a flag
+					if ( strlen(*av) > 1 && *av[0] == '-' && *av[1] == '-' ) {
+						o = &opts[0];
+						o->errmsg = opt_errmsg;
+						return serr( ERR_OPT_UNEXPECTED_FLAG, o, *av );
+					}
+			
+
+					//Evaluate the three different types
+					if ( o->type == 'c' ) {
+						(&o->v)->c = *av[0];
+					}
+					else if ( o->type == 'n' ) {
+						//char *a = *av; //Crashes for some reason if I just use dereference
+						for ( int i=0; i < strlen( *av ); i++ ) {
+							if ( (int)(*av)[i] < 48 || (int)(*av)[i] > 57 ) { //Not a number check
+								o = &opts[0];
+								o->errmsg = opt_errmsg;
+								return serr( ERR_OPT_EXPECTED_NUMERIC_ARG, o, *av );
+							}
+						}
+						(&o->v)->n = atoi( *av );	
+					}
+					else if ( o->type == 's' ) {
+						_Bool isstr=0;
+						for ( int i=0; i < strlen(*av); i++ ) { 
+							//We can safely assume this is an ascii string, if this passes
+							if ( ( *av[i] > 32 && *av[i] < 48 ) || ( *av[i] > 57 && *av[i] < 127 ) ) {
+								isstr = 1;
+								break;
+							}
+						}
+
+						if ( !isstr ) {
+							o = &opts[0];
+							o->errmsg = opt_errmsg;
+							return serr( ERR_OPT_EXPECTED_STRING_ARG, o, *av );
+						}
+						(&o->v)->s = *av;
 					}
 				}
 			}
@@ -548,7 +642,7 @@ uint8_t *bf_data (Buffer *b) {
 
 //Write out errors
 const char *bf_err (Buffer *b) {
-	return __errors[b->error];
+	return __SingleLibErrors[b->error];
 }
 
 
@@ -832,7 +926,7 @@ static const Mime mime[] = {
 };
 
 
-/*Get extension and find the filetype*/
+//Get extension and find the filetype
 const char *mtref (const char *mimename) {
 	int s = strlen(mimename);
 	for (int c = 0; c < (sizeof(mime)/sizeof(Mime)); c++) 
@@ -846,11 +940,14 @@ const char *mtref (const char *mimename) {
 	return mime[0].mimetype;
 }
 
+
+//Why is this here?
 const char *file_type_from_mime (const char *filename) {
 	return NULL;
 }
 
-/*Get extension and find the filetype*/
+
+//Get extension and find the filetype
 const char *mime_type_from_file (const char *filename) {
 	int i=0, j=0;
 	//Move back and find the extension, it should'nt be longer than 10 characters
@@ -894,7 +991,6 @@ int print_uerr (const char *err)
 }
 
 
-#if 1
 void print_body ( Bod *b )
 {
 	 niprintf( b->beg );
@@ -907,20 +1003,19 @@ void print_body ( Bod *b )
 	 niprintf( b->loop );
 	 niprintf( b->loopKeyLen );
 	 niprintf( b->loopValueLen );
- #if 0
+  #if 0
 	char    *srcTable;
 	uint8_t *tok,
 	        *loopKey,
 					*loopValue,
 					*value,
 					*loopBuf;
- #endif
+  #endif
 }
-#endif
-#endif
+ #endif
 
 
-static void render_dump_mark ( Render *r )
+void render_dump_mark ( Render *r )
 {
 	Mark *ct = &r->markers[0];
 	while ( ct->blob )
@@ -1010,20 +1105,25 @@ int render_map ( Render *r, uint8_t *src, int srclen )
 		//Just mark each section (and it's position)
 		if ((t = p.word[ p.tokenSize - 1 ]) == '#')
 		{
+			//The start of "positive" loops (items that should be true)
 			ct->blob = &src[p.prev],
 			ct->size = p.size,
 			ct->action = RAW;
 			REALLOC( raw, r->markers );
 			ct->action = POSLOOP;
 		}
-		else if (t == '^') {
+		else if (t == '^') 
+		{
+			//The start of "negative" loops (items that should be false)
 			ct->blob = &src[p.prev],
 			ct->size = p.size,
 			ct->action = RAW;
 			REALLOC( raw, r->markers );
 			ct->action = NEGLOOP;
 		}
-		else if (t == '/') {
+		else if (t == '/')
+		{
+			//The end of either a "positive" or "negative" loop
 			ct->blob = &src[p.prev],
 			ct->size = p.size,
 			ct->action = RAW;
@@ -1032,6 +1132,7 @@ int render_map ( Render *r, uint8_t *src, int srclen )
 		}
 		else if (t == '{')
 		{
+			//The start of a key (any type)
 			ct->blob = &src[p.prev],
 			ct->size = p.size,
 			ct->action = RAW;
@@ -1042,14 +1143,24 @@ int render_map ( Render *r, uint8_t *src, int srclen )
 		{
 			//Anything within here will always be a table
 			ct->blob  = trim( (uint8_t *)&src[ p.prev ], (char *)trimchars, p.size, &ct->size );
+		#ifdef RENDER_DEBUG_H
+			fprintf( stderr, "%s\n", "hi" );
+			write( 2, ct->blob, ct->size );
+			write( 2, "\n", 1 );
 
+			fprintf( stderr, "%s\n", "What is index?" );
+			fprintf( stderr, "%d\n", lt_get_long_i( r->srctable, ct->blob, ct->size ) );	
+		#endif
 			if ( *ct->blob == '.' )
 				ct->action = STUB;
 			else {
 				ct->index = lt_get_long_i( r->srctable, ct->blob, ct->size );
 				ct->type  = lt_vta( r->srctable, ct->index );
-				if ((ct->type == LITE_TBL) && (ct->action == POSLOOP || ct->action == NEGLOOP))
-					ct->parent = ct->blob, ct->psize = ct->size;	
+				if ((ct->type == LITE_TBL) && (ct->action == POSLOOP || ct->action == NEGLOOP)) 
+				{
+					ct->parent = ct->blob; 
+					ct->psize = ct->size;	
+				}
 			}
 			REALLOC( raw, r->markers );
 		}
@@ -1097,6 +1208,7 @@ int render_render ( Render *r )
 	//everytime you descend, src is what you got, size is length of src
 	//and times is times to repeat
 	struct DT *dt = d;
+	int top = 0;
 	memset( search, 0, sizeof(search) );
 	memset( dt, 0, sizeof (struct DT));
 	
@@ -1113,12 +1225,12 @@ int render_render ( Render *r )
 				if ( dt->skip )
 					dt->skip = 0;
 				else {
-#if 0
+				#if 0
 					//Write
 					write( 2, dt->parent, dt->psize );
 					fprintf( stderr, " => " );
 					write( 2, ct->blob, ct->size );
-#endif
+				#endif
 					//Decrement repetition
 					if ( dt->times == 0 )
 						dt--;
@@ -1133,37 +1245,54 @@ int render_render ( Render *r )
 
 		//Simply copy this data
 		if ( ct->action == RAW )
+		{
+		#ifdef RENDER_DEBUG_H
+			write( 2, ct->blob, ct->size );
+		#endif
 			bf_append( &r->dest, ct->blob, ct->size );
-
+		}
 		//Retrieve the reference and write it
 		else if ( ct->action == DIRECT && ct->index > -1 )
 		{
-			//fprintf( stderr, "Direct reference is of type: %s", lt_typename( ct->type ));
+		#ifdef RENDER_DEBUG_H
+			SHOWDATA( "in rdbgh" );
 			if ( ct->type == LITE_BLB )
-				bf_append( &r->dest, lt_blobdata_at( r->srctable, ct->index ), lt_blobsize_at( r->srctable, ct->index ));
-			else if ( ct->type == LITE_TXT ) {
-				char *a = lt_text_at( r->srctable, ct->index );
+				write( 2, lt_blobdata_at( r->srctable, ct->index ), lt_blobsize_at( r->srctable, ct->index ));
+			else if ( ct->type == LITE_INT )
+				fprintf( stderr, "%d", lt_int_at( r->srctable, ct->index )); 
+			else if ( ct->type == LITE_FLT )
+				fprintf( stderr, "%f", lt_float_at( r->srctable, ct->index )); 
+			else if ( ct->type == LITE_USR )
+				fprintf( stderr, "%p", lt_userdata_at( r->srctable, ct->index )); 
+			else if ( ct->type == LITE_TBL )
+				fprintf( stderr, "%p", (void *)&lt_table_at( r->srctable, ct->index )); 
+			else if ( ct->type == LITE_TXT )
+				fprintf( stderr, "%s\n", lt_text_at( r->srctable, ct->index ) );
+			else { 
+			}	
+		#endif
+			//fprintf( stderr, "Direct reference is of type: %s", lt_typename( ct->type ));
+			if ( ct->type == LITE_BLB ) {
+				uint8_t *b = lt_blobdata_at( r->srctable, ct->index );
+				bf_append( &r->dest, b, lt_blobsize_at( r->srctable, ct->index ));
+			}
+			else { 
+				char *a = NULL, b[128] = {0};
+				if ( ct->type == LITE_INT )
+					snprintf( a = b, 63, "%d", lt_int_at( r->srctable, ct->index )); 
+				else if ( ct->type == LITE_FLT )
+					snprintf( a = b, 127, "%f", lt_float_at( r->srctable, ct->index )); 
+				else if ( ct->type == LITE_USR )
+					snprintf( a = b, 127, "%p", lt_userdata_at( r->srctable, ct->index )); 
+				else if ( ct->type == LITE_TBL )
+					snprintf( a = b, 127, "%p", (void *)&lt_table_at( r->srctable, ct->index )); 
+				else if ( ct->type == LITE_TXT )
+					a = lt_text_at( r->srctable, ct->index );
+				else { 
+					a = 0;//Skip all other types
+				}	
 				bf_append( &r->dest, (uint8_t *)a, strlen( a ) );
 			}
-			else if ( ct->type == LITE_INT )
-			{ char a[ 64 ]={0}; 
-				snprintf( a, 63, "%d", lt_int_at( r->srctable, ct->index )); 
-				bf_append( &r->dest, (uint8_t *)a, strlen( a ) ); }
-			else if ( ct->type == LITE_FLT )
-			{ char a[ 128 ]={0}; 
-				snprintf( a, 127, "%f", lt_float_at( r->srctable, ct->index )); 
-				bf_append( &r->dest, (uint8_t *)a, strlen( a ) ); }
-			else if ( ct->type == LITE_USR )
-			{ char a[ 128 ]={0}; 
-				snprintf( a, 127, "%p", lt_userdata_at( r->srctable, ct->index )); 
-				bf_append( &r->dest, (uint8_t *)a, strlen( a ) ); }
-			else if ( ct->type == LITE_TBL )
-			{ char a[ 128 ]={0}; 
-				snprintf( a, 127, "%p", (void *)&lt_table_at( r->srctable, ct->index )); 
-				bf_append( &r->dest, (uint8_t *)a, strlen( a ) ); }
-			else { 
-				;//Skip all other types 
-			}	
 		}
 		else if ( ct->action == STUB )
 		{
@@ -1171,19 +1300,29 @@ int render_render ( Render *r )
 			int i=0, p=0;
 			memcpy( &search[ p ], dt->parent, dt->psize );
 			p += dt->psize;
+
+			//Reverse can be done by manipulating dt->times (top = dt->times; num = top - dt->times )
 			p += snprintf( (char *)&search[ p ], 64, ".%d", dt->times );
 			memcpy( &search[ p ], ct->blob, ct->size );
 			p += ct->size;
 		
-#if 1
+		#ifdef RENDER_DEBUG_H
+			niprintf( dt->psize );
+			niprintf( ct->size  );
+			niprintf( dt->times );
+			write( 2, "Search: ", 8 );
 			write( 2, search, p );
 			write( 2, "\n", 1 );
-			//getchar();
-#endif
-		
+			getchar();
+		#endif
+	
+			//Get long i, yay
 			if ( (i = lt_get_long_i( r->srctable, search, p )) == -1 )
-				{ ct++; continue; }//fprintf( stderr, "Looks like there's nothing here..." );		
-			else 
+			{
+				ct++;
+				continue;
+			}
+			else
 			{
 				uint8_t *src = NULL;
 				LiteType t = lt_vta( r->srctable, i );
@@ -1226,6 +1365,7 @@ int render_render ( Render *r )
 					{
 						dt++;
 						memset( dt, 0, sizeof (struct DT));
+
 						//Skip completely if this is a table and there are no entries
 						if ( (dt->times = lt_counti( r->srctable, ct->index )) > 0 )
 						{
@@ -1235,6 +1375,11 @@ int render_render ( Render *r )
 							dt->psize = ct->size;
 							dt->parent = ct->blob;
 						}
+					#if 0
+						lt_dump( r->srctable );
+						fprintf( stderr, "We is gonna repeat this, this many times: %d\n", dt->times );
+						return 0;	
+					#endif
 					}
 				}
 			}
@@ -1332,9 +1477,6 @@ static int build_backwards (LiteKv *t, unsigned char *buf, int bs)
 
 
 
-#ifdef DEBUG_H 
-#endif
-
 //Trim things
 unsigned char *lt_trim (uint8_t *msg, char *trim, int len, int *nlen) 
 {
@@ -1349,8 +1491,7 @@ unsigned char *lt_trim (uint8_t *msg, char *trim, int len, int *nlen)
 }
 
 
-
-//Count indicies in a table. If index is greater than 1 and the item is a "table", then will return the number of elements in said table
+//Count indices in a table. If index is greater than 1 and the item is a "table", then will return the number of elements in said table
 int lt_counti ( Table *t, int index )
 {
 	//Return count of all elements
@@ -1381,13 +1522,10 @@ int lt_counti ( Table *t, int index )
 }
 
 
-
-
-
-
-
-
-
+int lt_countall( Table *t )
+{
+	return t->count + 1;
+}
 
 
 //Clear error
@@ -1401,12 +1539,15 @@ void lt_clearerror (Table *t)
 const char *lt_strerror (Table *t)
 {
 	//Paranoid bounds checking
-	return ( t->error > -1 && t->error < ERR_LT_INDEX_MAX) ? __errors[ t->error ] : NULL; 
+	return ( t->error > -1 && t->error < ERR_LT_INDEX_MAX) ? __SingleLibErrors[ t->error ] : NULL; 
 }
+
 
 //Initiailizes a table data structure
 Table *lt_init (Table *t, LiteKv *k, int size) 
 {
+	SHOWDATA( "Working with root table %p\n", t );
+
 	//Calculate optimal modulus for hashing
 	if ( size <= 63 )
 		t->modulo = 63; 
@@ -1434,8 +1575,9 @@ Table *lt_init (Table *t, LiteKv *k, int size)
 		t->modulo = 199999; 
 	else if ( size <= 199961 )
 		t->modulo = 199999; 
-	else
+	else {
 		t->modulo = 511997; 
+	}
 
 	int actual_size = size;
 	t->mallocd = (!k) ? 1 : 0;
@@ -1459,8 +1601,9 @@ Table *lt_init (Table *t, LiteKv *k, int size)
 	}
 
 	//Initialize all hash entries to -1
-	for (int i=0; i < actual_size; i++)
+	for ( int i=0; i < actual_size; i++ ) {
 		memset( k[i].hash, -1, sizeof(int) * lt_max_slots );
+	}
 
 	//Set this
 	t->current = NULL;
@@ -1493,7 +1636,8 @@ LiteType lt_add ( Table *t, int side, LiteType lt, int vi, float vf,
 		t->error = ERR_LT_OUT_OF_SPACE;
 		return 0;
 	}
-		
+
+	//...		
 	LiteValue  *v = (!side) ? &(t->head + t->index)->key : &(t->head + t->index)->value;
 	LiteRecord *r = &v->v;
 	v->type       = lt;
@@ -1506,46 +1650,34 @@ LiteType lt_add ( Table *t, int side, LiteType lt, int vi, float vf,
 	if ( lt == LITE_INT )
 	{
 		r->vint = vi;
-	#ifdef DEBUG_H
 		SHOWDATA( "Adding int %s %d to table at %p", ( !side ) ? "key" : "value", r->vint, ( void * )t );
-	#endif
 	}
 	else if ( lt == LITE_FLT )
 	{
 		r->vfloat = vf;
-	#ifdef DEBUG_H
 		SHOWDATA( "Adding float %s %f to table at %p", ( !side ) ? "key" : "value", r->vfloat, ( void * )t );
-	#endif
 	}
 #ifdef LITE_NUL
 	else if ( lt == LITE_NUL )
 	{
 		r->vnull = NULL;
-	#ifdef DEBUG_H
 		SHOWDATA( "Adding null %s to table at %p", ( !side ) ? "key" : "value", ( void * )t );
-	#endif
 	}
 #endif
 	else if ( lt == LITE_USR )
 	{
 		r->vusrdata = vn;
-	#ifdef DEBUG_H
 		SHOWDATA( "Adding userdata %p to table at %p", ( void * )r->vusrdata, ( void * )t );
-	#endif
 	}
 	else if ( lt == LITE_TBL )
 	{
-	#ifdef DEBUG_H
 		SHOWDATA( "Adding invalid value table!" );
-	#endif
 		return ( t->error = ERR_LT_INVALID_VALUE ) ? -1 : -1;
 	}
 	else if ( lt == LITE_BLB )
 	{
 		r->vblob.blob = vb, r->vblob.size = vblen;
-	#ifdef DEBUG_H
 		SHOWDATA( "Adding blob %s of length %d to table at %p", (!side) ? "key" : "value", r->vblob.size, ( void * )t );
-	#endif
 	}
 	else if ( lt == LITE_TXT )
 	{
@@ -1559,16 +1691,12 @@ LiteType lt_add ( Table *t, int side, LiteType lt, int vi, float vf,
 			memset( r->vchar, 0, vblen + 1 );
 			memcpy( r->vchar, vb, vblen );
 			r->vchar[ vblen ] = '\0';
-		#ifdef DEBUG_H
 			SHOWDATA( "Adding text %s '%s' to table at %p", ( !side ) ? "key" : "value", r->vchar, ( void * )t );
-		#endif
 		}
 	}
 	else 
 	{
-	#ifdef DEBUG_H
 		SHOWDATA( "Attempted to add unknown %s type to table at %p", ( !side ) ? "key" : "value", ( void * )t );
-	#endif
 		return 0;
 	}
 	return lt;
@@ -1605,8 +1733,7 @@ const char *lt_typename (int type)
 }
 
 
-
-//Descend one level (creating a table)
+//Move left or right within the hierarchy of tables
 int lt_move (Table *t, int dir) 
 {
 	//Out of space
@@ -1621,13 +1748,9 @@ int lt_move (Table *t, int dir)
 	LiteKv **cptr    = &curr;
 	LiteValue *value = &curr->value;
 
-
 	//Left or right?	
 	if ( !dir )
 	{
-	#ifdef DEBUG_H
-		SHOWDATA( "Descending into table value to table at %p", ( void * )t );
-	#endif
 		//Set count of elements in this new table to actual count
 		LiteTable *T = &value->v.vtable;
 		value->type  = LITE_TBL;
@@ -1636,8 +1759,13 @@ int lt_move (Table *t, int dir)
 		/*Yay*/
 		T->parent  = ( !t->current ) ? NULL : t->current;
 		T->ptr     = *(long *)&T; 
-		//T->ptr   = (int)T; //for some reason, GCC doesn't like this...
 		t->current = T;
+
+		//Ascension shouldn't need pointer increment...
+	#ifdef SUPEREXTRA
+		t->count ++;
+		t->index ++;
+	#endif
 	}
 	else 
 	{
@@ -1646,15 +1774,13 @@ int lt_move (Table *t, int dir)
 		key->type      = LITE_TRM;
 		value->type    = LITE_NUL;
 		LiteRecord *r  = &key->v;	
-	#ifdef DEBUG_H
-		SHOWDATA( "Ascending from inner table within at %p", ( void * )t );
-	#endif
 
-		//
+		//....
 		if ( !t->current->parent )
 		{
 			t->rCount = &t->count;
 			r->vptr = (long)t->current->ptr;
+			t->current = NULL;
 		}
 		else if ( t->current->parent )
 		{
@@ -1663,9 +1789,16 @@ int lt_move (Table *t, int dir)
 			t->rCount = &T->count;
 			t->current = T;
 		}
+
+	#ifdef SUPEREXTRA
+		lt_finalize (t);
+	#endif
 	}
-		
-	lt_finalize (t);
+
+#ifndef SUPEREXTRA
+	lt_finalize( t );		
+#endif
+
 	return 1;
 }
 
@@ -1674,7 +1807,8 @@ int lt_move (Table *t, int dir)
 //Finalize adding to both sides of a table data structure
 void lt_finalize (Table *t)
 {
-	( *t->rCount )++;
+	//if these are equal, don't increment both *t->rCount and t->count
+	( t->rCount == &t->count ) ? 0 : ( *t->rCount )++ ; 
 	t->count ++;
 	t->index ++;
 }
@@ -2129,6 +2263,7 @@ void lt_printt (Table *t)
 }
 
 
+#if 0
 //Dump a table
 void lt_dump (Table *t) 
 {
@@ -2144,7 +2279,37 @@ void lt_dump (Table *t)
 		level += ( vt == LITE_NUL ) ? -1 : (vt == LITE_TBL) ? 1 : 0;
 	}
 }
+#endif
 
+
+//Dump all values in a table.
+int __lt_dump ( LiteKv *kv, int i, void *p )
+{
+	VPRINT( "kv at __lt_dump: %p", kv );
+	LiteType vt = kv->value.type;
+	int *level = (int *)p;
+	fprintf ( stderr, "[%-5d] %s", i, &"\t\t\t\t\t\t\t\t\t\t"[ 10 - *level ]);
+	lt_printindex( kv, *level );
+	*level += ( vt == LITE_NUL ) ? -1 : (vt == LITE_TBL) ? 1 : 0;
+	return 1;
+}
+
+
+//Write a real simple function to iterate through everything
+//void lt_complex_exec (Table *t, int (*fp)( LiteType t, LiteValue *k, LiteValue *v, int i, void *p ) )
+int lt_exec (Table *t, void *p, int (*fp)( LiteKv *kv, int i, void *p ) )
+{
+	int level = 0;	
+
+	//Loop through each index
+	for (int i=0, status=0; i <= t->index; i++) {
+		//VPRINT( "kv at __lt_dump: %p", (t->head + i ));
+		if ( (status = fp( (t->head + i), i, p )) == 0 ) {
+			return 0;
+		}
+	}
+	return 1;
+}
 
 //Print a set of values at a particular index
 static void lt_printindex (LiteKv *tt, int ind)
@@ -2168,10 +2333,10 @@ static void lt_printindex (LiteKv *tt, int ind)
 			/*LITE_NODE is handled in printall*/
 			if (t == LITE_NON)
 				w += snprintf( &b[w], lt_buflen - w, "%s", "is uninitialized" );
-#ifdef LITE_NUL
+		#ifdef LITE_NUL
 			else if (t == LITE_NUL)
 				w += snprintf( &b[w], lt_buflen - w, "is terminator" );
-#endif
+		#endif
 			else if (t == LITE_USR)
 				w += snprintf( &b[w], lt_buflen - w, "userdata [address: %p]", r->vusrdata );
 			else if (t == LITE_TBL) 
@@ -2213,10 +2378,8 @@ static void lt_printindex (LiteKv *tt, int ind)
 //Get a key or value somewhere
 void lt_printall ( Table *t ) 
 {
-#ifdef DEBUG_H
 	//Header
 	fprintf( stderr, fmt, "Index", "KType", "VType", "Value", "CombinedValue", "HashOf", "Hashes" );
-#endif
 
 	for ( int ii=0; ii < t->index; ii++ )
 	{
@@ -2724,101 +2887,6 @@ static const char *sq_names[] =
 	[SQ_DTE] = "date",
 };
 
-//Forward declarations for the sake of keeping data organized
-static _Bool sq_add_sqlite3_dateint (sqlite3_stmt *stmt, int i, const SQWrite *w);
-static _Bool sq_add_sqlite3_int (sqlite3_stmt *stmt, int i, const SQWrite *w);
-static _Bool sq_add_sqlite3_double (sqlite3_stmt *stmt, int i, const SQWrite *w);
-static _Bool sq_add_sqlite3_text (sqlite3_stmt *stmt, int i, const SQWrite *w);
-static _Bool sq_add_sqlite3_blob (sqlite3_stmt *stmt, int i, const SQWrite *w);
-
-static _Bool pr_add_sqlite3_int (sqlite3_stmt *stmt, int i, const SQWrite *w);
-static _Bool pr_add_sqlite3_double (sqlite3_stmt *stmt, int i, const SQWrite *w);
-static _Bool pr_add_sqlite3_text (sqlite3_stmt *stmt, int i, const SQWrite *w);
-static _Bool pr_add_sqlite3_blob (sqlite3_stmt *stmt, int i, const SQWrite *w);
-
-static int sq_sqlite3_column_int (sqlite3_stmt *stmt, int col, uint8_t *);
-static int sq_sqlite3_column_double (sqlite3_stmt *stmt, int col, uint8_t *);
-static int sq_sqlite3_column_text (sqlite3_stmt *stmt, int col, uint8_t *);
-static int sq_sqlite3_column_blob (sqlite3_stmt *stmt, int col, uint8_t *);
-
-static int sz_sqlite3_column_any (sqlite3_stmt *stmt, int col, uint8_t *);
-
-static int pr_sqlite3_column_int (sqlite3_stmt *stmt, int col, uint8_t *);
-static int pr_sqlite3_column_double (sqlite3_stmt *stmt, int col, uint8_t *);
-static int pr_sqlite3_column_text (sqlite3_stmt *stmt, int col, uint8_t *);
-static int pr_sqlite3_column_blob (sqlite3_stmt *stmt, int col, uint8_t *);
-
-static _Bool __sq_read_oneshot (const char *filename, const char *sql, int limit, SQWrite **ww);
-
-/*Reader function pointers*/
-static SQReader sq_readers[][7] = {
-	{
-		[SQLITE_INTEGER] = { .fp = sq_sqlite3_column_int },
-		[SQLITE_FLOAT]   = { .fp = sq_sqlite3_column_double },
-		[SQLITE_TEXT]    = { .fp = sq_sqlite3_column_text },
-		[SQLITE_BLOB]    = { .fp = sq_sqlite3_column_blob },
-		[SQLITE_NULL]    = { .fp = 0 },
-	},
-	{
-		[SQLITE_INTEGER] = { .fp = pr_sqlite3_column_int },
-		[SQLITE_FLOAT]   = { .fp = pr_sqlite3_column_double },
-		[SQLITE_TEXT]    = { .fp = pr_sqlite3_column_text },
-		[SQLITE_BLOB]    = { .fp = pr_sqlite3_column_blob },
-		[SQLITE_NULL]    = { .fp = 0 },
-	},
-};
-
-/*Insert function pointers*/
-static SQInsert sq_inserters[][7] = {
-	{ 
-		[SQLITE_INTEGER] = { .fp = sq_add_sqlite3_int },
-		[SQLITE_FLOAT]   = { .fp = sq_add_sqlite3_double },
-		[SQLITE_TEXT]    = { .fp = sq_add_sqlite3_text },
-		[SQLITE_BLOB]    = { .fp = sq_add_sqlite3_blob },
-		[SQ_DTE]         = { .fp = sq_add_sqlite3_dateint },
-		[SQLITE_NULL]    = { .fp = 0 },
-	},
-	{
-		[SQLITE_INTEGER] = { .fp = pr_add_sqlite3_int },
-		[SQLITE_FLOAT]   = { .fp = pr_add_sqlite3_double },
-		[SQLITE_TEXT]    = { .fp = pr_add_sqlite3_text },
-		[SQLITE_BLOB]    = { .fp = pr_add_sqlite3_blob },
-		[SQLITE_NULL]    = { .fp = 0 },
-	},
-}; 
-
-
-#if 0
-//Trim any characters 
-static unsigned char *trim (uint8_t *msg, char *trim, int len, int *nlen) 
-{
-	//Define stuff
-	uint8_t *m = msg;
-	int nl= len;
-	//Move forwards and backwards to find whitespace...
-	while ( memchr(trim, *(m + ( nl - 1 )), 4) && nl-- ) ; 
-	while ( memchr(trim, *m, 4) && nl-- ) m++;
-	*nlen = nl;
-	return m;
-}
-#endif
-
-
-#if 0
-/*Print and set error*/
-int perr (Database *gb, SQ_Error err) 
-{
-	struct stupid_err c = stupid_error_map[err];
-	fprintf(stderr, "%s\n", c.msg);
-	if (c.sys)
-		fprintf(stderr, "%s\n", sqlite3_errmsg(gb->db));
-
-	/*Varargs could pop off each of the needed arguments*/
-	/*If you need to "unwind the stack", do that from the error map*/
-	return 0;
-}
-#endif
-
 
 #ifdef DEBUG_H
 /*Print out the weird structure*/
@@ -2879,7 +2947,7 @@ static int32_t Lmemtok (const void *a, const uint8_t *tokens, int32_t sz, int32_
 
 
 //Opens and creates a new database if it does not exist and closes it
-_Bool sq_create_oneshot (const char *filename, const char *sql) 
+_Bool sq_create_oneshot (const char *filename, const char *sql, char *err) 
 {
 	int rc, t = 0, a = 0;
 	sqlite3 *db = NULL;
@@ -2944,75 +3012,15 @@ _Bool sq_create_oneshot (const char *filename, const char *sql)
 		sqlite3_finalize(stmt);
 
 	//close database
-	if (sqlite3_close(db) != SQLITE_OK)
-		return berr(0, ERR_DB_CLOSE);
+	if (sqlite3_close(db) != SQLITE_OK) {
+		return ERR_DB_CLOSE; //berr(0, ERR_DB_CLOSE);
+	}
 	return 1;	
 }
 
 
-
-//Do an insert
-int sq_insert_oneshot (const char *filename, const char *sql, const SQWrite *w) 
-{
-	int rc, pos = 1;
-	sqlite3 *db = NULL;
-	sqlite3_stmt *stmt = NULL;
-	SQInsert *stack = sq_inserters[0];
-
-	//Open database	
-	if (sqlite3_open(filename, &db) != SQLITE_OK)
-	{
-		fprintf (stderr, "Failed to prepare db stmt: %s\n", sqlite3_errmsg(db));	
-		return 0; //ERR_DB_OPEN; //berr(0, ERR_DB_OPEN);
-	}
-
-	//Prepare
-	if ((rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0)) != SQLITE_OK) 
-	{
-		//return err(NULL, ERR_DB_PREPARE_STMT);
-		fprintf (stderr, "Failed to prepare db stmt: %s\n", sqlite3_errmsg(db));	
-		return 0;
-	}
-
-	//Loop through each value, do something with it
-	while (!w->sentinel) 
-	{
-		if (!stack[w->type].fp (stmt, pos, w))
-		{
-			fprintf( stderr, "Insert at stack failed...\n" );
-			return 0;
-		}
-		w++, pos++;
-	}
-
-	//Step and execute
-	if ((rc = sqlite3_step(stmt)) != SQLITE_DONE)
-	{
-		fprintf (stderr, "Failed to step: %s\n", sqlite3_errmsg(db));	
-		//return berr(0, ERR_DB_STEP);
-		return 0;
-	}
-
-	//Finalize statement
-	if (stmt)
-		sqlite3_finalize(stmt);
-
-	//close database
-	if (sqlite3_close(db) != SQLITE_OK)
-	{
-		fprintf (stderr, "Failed to close db: %s\n", sqlite3_errmsg(db));	
-		//return berr(0, ERR_DB_CLOSE);
-		return 0;
-	}
-
-	return 1;
-}
-
-
-
-
-//This returns the total size of a query
-int sq_get_query_size ( sqlite3_stmt *stmt ) {
+//This returns the total size of a query (how big should a hash table be)
+static int sq_get_query_size ( sqlite3_stmt *stmt ) {
 	//Define stuff
 	//sqlite3_stmt Stmt;
 	int rc;
@@ -3029,153 +3037,6 @@ int sq_get_query_size ( sqlite3_stmt *stmt ) {
 
 	return size;
 } 
-
-
-
-//Read data and return a reference to it
-uint8_t *sq_read_oneshot (const char *filename, const char *sql, int limit) 
-{
-	//Define common things
-	int rc;
-	int lm=0;
-	int size=0;
-	uint8_t *msg = NULL;
-	sqlite3 *db = NULL;
-	sqlite3_stmt *stmt = NULL;
-
-	//open the database if it's not already (or die and open it elsewhere)
-	if (sqlite3_open(filename, &db) != SQLITE_OK) {
-		//return err(NULL, ERR_DB_OPEN);
-		//fprintf( stderr, "%s: %s\n", name, err(ERR_DB_OPEN));   
-		return NULL;
-	}
-
-	//execute whatever SQL is here
-	if ((rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0)) != SQLITE_OK) {
-		//return err(NULL, ERR_DB_PREPARE_STMT);
-		//fprintf( stderr, "%s: %s\n", name, err(ERR_DB_PREPARE_STMT));   
-		return NULL;
-	}
-
-	//Stack model should be chosen ahead of time
-	SQReader *stack = sq_readers[0];
-
-	//Create some space for the message.  Leave me alone...
-	if ( !(msg = calloc(sq_get_query_size(stmt), 1)) ) {
-		fprintf( stderr, "%s: %s\n", name, "Couldn't allocate space for result set.");
-		return NULL;
-	}
-
-			
-	//serialize those results
-	while ( (rc = sqlite3_step(stmt)) != SQLITE_DONE )
-	{
-		int s = sqlite3_data_count(stmt);
-		for (int i=0; i < s; i++) 
-		{
-			//TODO: realloc might be a better option here.
-			int wr = sqlite3_column_bytes (stmt, i); 
-			memcpy( &msg[size], sqlite3_column_text(stmt, i), wr );
-			size  += wr;
-	
-			//Copy the next boundary	
-			memcpy( &msg[size], &boundary[ (i != (s - 1)) ? 0 : 9 ], 9 );
-			size  +=  9;
-		}
-
-		//fprintf(stderr, "%s\n", "hi");
-		//write(2, msg, size);
-		//getchar();
-	}
-
-	//finalize statement 
-	if (stmt) {
-		sqlite3_finalize(stmt);
-	}
-
-	//close database
-	if (sqlite3_close(db) != SQLITE_OK) {
-		//return err(NULL, ERR_DB_CLOSE);
-		//You could theoretically try again.
-		return NULL;
-	}
-
-
-	//Return something
-	return msg;
-}
-
-
-
-//Read data and use a callback
-uint8_t *sq_readinto_oneshot (const char *filename, const char *sql, int limit, void *p, int (*fp)(void *p)) 
-{
-	//Define common things
-	int rc;
-	int lm=0;
-	int size=0;
-	uint8_t *msg = NULL;
-	sqlite3 *db = NULL;
-	sqlite3_stmt *stmt = NULL;
-
-	//open the database if it's not already (or die and open it elsewhere)
-	if (sqlite3_open(filename, &db) != SQLITE_OK) {
-		//return err(NULL, ERR_DB_OPEN);
-		//fprintf( stderr, "%s: %s\n", name, err(ERR_DB_OPEN));   
-		return NULL;
-	}
-
-	//execute whatever SQL is here
-	if ((rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0)) != SQLITE_OK) {
-		//return err(NULL, ERR_DB_PREPARE_STMT);
-		//fprintf( stderr, "%s: %s\n", name, err(ERR_DB_PREPARE_STMT));   
-		return NULL;
-	}
-
-			
-	//serialize those results
-	while ( (rc = sqlite3_step(stmt)) != SQLITE_DONE )
-	{
-		int s = sqlite3_data_count(stmt);
-		for (int i=0; i < s; i++) 
-		{
-			//TODO: realloc might be a better option here.
-			int wr = sqlite3_column_bytes (stmt, i); 
-			memcpy( &msg[size], sqlite3_column_text(stmt, i), wr );
-			size  += wr;
-	
-			//Copy the next boundary	
-			memcpy( &msg[size], &boundary[ (i != (s - 1)) ? 0 : 9 ], 9 );
-			size  +=  9;
-		}
-
-#if 0
-		fprintf(stderr, "%s\n", "hi");
-		write(2, msg, size);
-		getchar();
-#endif
-	}
-
-	//finalize statement 
-	if (stmt) {
-		sqlite3_finalize(stmt);
-	}
-
-	//close database
-	if (sqlite3_close(db) != SQLITE_OK) {
-		//return err(NULL, ERR_DB_CLOSE);
-		//You could theoretically try again.
-		return NULL;
-	}
-
-
-	//Return something
-	return msg;
-}
-
-
-
-
 
 
 //Check type
@@ -3231,176 +3092,59 @@ SQType sq_get_type (uint8_t *p, int len) {
 
 
 
+//Just one sq_add now
+static int sq_add (sqlite3_stmt *stmt, int i, const SQWrite *w, char *errstr) {
+	int rc = 0;
+	int error = 0;
 
-
-
-/*The cursor or current row can be kept here*/
-static _Bool sq_add_sqlite3_int (sqlite3_stmt *stmt, int i, const SQWrite *w) {
-	int rc = sqlite3_bind_int( stmt, i, w->v.n );
-	if (rc != SQLITE_OK) {
-		return (fprintf(stderr, "Error binding SQL %s at position %d: %s\n",
-			sqltypes[SQLITE_INTEGER], i, sqlite3_errstr(rc)) ? 0 : 0);
+	if ( w->type == SQLITE_INTEGER )
+		rc = sqlite3_bind_int( stmt, i, w->v.n );
+	else if ( w->type == SQLITE_FLOAT )
+		rc = sqlite3_bind_double( stmt, i, w->v.n );
+	else if ( w->type == SQLITE_BLOB )
+		rc = sqlite3_bind_blob(stmt, i, w->v.d, w->len, SQLITE_STATIC);
+	else if ( w->type == SQLITE_NULL ) 
+		rc = sqlite3_bind_null( stmt, i );
+	else if ( w->type == SQLITE_TEXT ) {
+		int len = (!w->len || w->len == -1) ? strlen(w->v.c) : w->len;
+		rc = sqlite3_bind_text( stmt, i, w->v.c, len, SQLITE_STATIC);
 	}
-	return 1;
-}
-
-
-
-//Add a date by integer or by long date?
-static _Bool sq_add_sqlite3_dateint (sqlite3_stmt *stmt, int i, const SQWrite *w) {
+	else if ( w->type == SQ_DTE ) {
  #ifdef _POSIX_TIME 
-	struct timespec ts;
-	clock_gettime(CLOCK_REALTIME, &ts);
+		struct timespec ts;
+		clock_gettime(CLOCK_REALTIME, &ts);
  #else
-	struct timeval ts;
-	gettimeofday( &ts, NULL );
+		struct timeval ts;
+		gettimeofday( &ts, NULL );
  #endif
-	int rc = sqlite3_bind_int( stmt, i, ts.tv_sec );
-	if (rc != SQLITE_OK) {
-		return (fprintf(stderr, "Error binding SQL %s at position %d: %s\n",
-			sqltypes[SQLITE_INTEGER], i, sqlite3_errstr(rc)) ? 0 : 0);
+		rc = sqlite3_bind_int( stmt, i, ts.tv_sec );
 	}
-	return 1;
+
+	if ( rc != SQLITE_OK ) {
+		//TODO: Use code and errstr
+		return rc; 
+	}
+
+	return SQLITE_OK;
 }
 
 
-
-//
-static _Bool sq_add_sqlite3_double (sqlite3_stmt *stmt, int i, const SQWrite *w) {
-	int rc=sqlite3_bind_double(stmt, i, w->v.f);
-	if (rc != SQLITE_OK) {
-		return (fprintf(stderr, "Error binding SQL %s at position %d: %s\n",
-			sqltypes[SQLITE_FLOAT], i, sqlite3_errstr(rc)) ? 0 : 0);
-	}
-	return 1;
-}
-
-
-static _Bool sq_add_sqlite3_text (sqlite3_stmt *stmt, int i, const SQWrite *w) 
+//Write a date
+void sq_getdate (char *datebuf) 
 {
-	int rc= sqlite3_bind_text(stmt, i, w->v.c,
-		(!w->len || w->len == -1) ? strlen(w->v.c) : w->len, SQLITE_STATIC);
-	if (rc != SQLITE_OK) {
-		return (fprintf(stderr, "Error binding SQL %s at position %d: %s\n",
-			sqltypes[SQLITE_TEXT], i, sqlite3_errstr(rc)) ? 0 : 0);
-	}
-	return 1;
-}
-
-
-static _Bool sq_add_sqlite3_blob (sqlite3_stmt *stmt, int i, const SQWrite *w) {
-	int rc = sqlite3_bind_blob(stmt, i, w->v.d, w->len, SQLITE_STATIC);
-	if (rc != SQLITE_OK) {
-		return (fprintf(stderr, "Error binding SQL %s at position %d: %s\n",
-			sqltypes[SQLITE_BLOB], i, sqlite3_errstr(rc)) ? 0 : 0);
-	}
-	return 1;
-}
-
-
-static _Bool pr_add_sqlite3_int (sqlite3_stmt *stmt, int i, const SQWrite *w) {
-	fprintf(stderr, "Adding int at column %d\n", i);
-	fprintf(stderr, "%d\n", w->v.n); 
-	return 1;
-}
-
-
-static _Bool pr_add_sqlite3_double (sqlite3_stmt *stmt, int i, const SQWrite *w) {
-	fprintf(stderr, "Adding float at column %d\n", i);
-	fprintf(stderr, "%f\n", w->v.f); 
-	return 1;
-}
-
-
-static _Bool pr_add_sqlite3_text (sqlite3_stmt *stmt, int i, const SQWrite *w) {
-	fprintf(stderr, "Adding text at column %d\n", i);
-	write(2, w->v.c, w->len);
-	return 1;
-}
-
-
-static _Bool pr_add_sqlite3_blob (sqlite3_stmt *stmt, int i, const SQWrite *w) {
-	fprintf(stderr, "Adding blob at column %d\n", i);
-	write(2, w->v.d, w->len);
-	return 1;
-}
-
-
-/*Handles serializing everything*/
-static int sq_sqlite3_column_int (sqlite3_stmt *stmt, int col, uint8_t *msg) {
-	fprintf(stderr, "%s\n", sqlite3_column_text(stmt, col)); 
-	return 1;
-}
-
-
-static int sq_sqlite3_column_double (sqlite3_stmt *stmt, int col, uint8_t *msg) {
-	fprintf(stderr, "%s\n", sqlite3_column_text(stmt, col)); 
-	return 1;
-}
-
-
-static int sq_sqlite3_column_text (sqlite3_stmt *stmt, int col, uint8_t *msg) {
-	fprintf(stderr, "%s\n", sqlite3_column_text(stmt, col)); 
-	return 1;
-}
-
-
-static int sq_sqlite3_column_blob (sqlite3_stmt *stmt, int col, uint8_t *msg) {
-	fprintf(stderr, "%s\n", sqlite3_column_text(stmt, col)); 
-	return 1;
-}
-
-
-/*Get size of items in columns everything*/
-static int sz_sqlite3_column_any (sqlite3_stmt *stmt, int col, uint8_t *msg) {
-	return sqlite3_column_bytes(stmt, col); 
-}
-
-
-/*Handles serializing everything*/
-static int pr_sqlite3_column_int (sqlite3_stmt *stmt, int col, uint8_t *msg) {
-	fprintf(stderr, "%d\n", sqlite3_column_int(stmt, col)); 
-	return 1;
-}
-
-static int pr_sqlite3_column_double (sqlite3_stmt *stmt, int col, uint8_t *msg) {
-	fprintf(stderr, "%f\n", sqlite3_column_double(stmt, col)); 
-	return 1;
-}
-
-static int pr_sqlite3_column_text (sqlite3_stmt *stmt, int col, uint8_t *msg) {
-	fprintf(stderr, "%s\n", sqlite3_column_text(stmt, col)); 
-	return 1;
-}
-
-static int pr_sqlite3_column_blob (sqlite3_stmt *stmt, int col, uint8_t *msg) {
-	fprintf(stderr, "bytes: %d\n", sqlite3_column_bytes(stmt, col)); 
-	write(2, sqlite3_column_blob(stmt, col), sqlite3_column_bytes(stmt, col)); 
-	return 1;
-}
-
-
-
-
-
-
-
-/*Write a date*/
-void sq_getdate (char *datebuf) {
-	struct tm *tm;
+	struct tm *tm = NULL;
 	time_t t = time(NULL);
 
-	/*Get the current date and time*/
-	if (!(tm = localtime(&t)))
-		return;
+	//Get the current date and time
+	if ( !(tm = localtime(&t)) ) return;
 
-	strftime(datebuf, 256, "%a, %d %b %Y %T %z", tm);
+	strftime( datebuf, 256, "%a, %d %b %Y %T %z", tm );
 }
 
 
-
-/*Initialize a database structure*/
-_Bool sq_init (Database *gb) {
+//Initialize a database structure
+_Bool sq_init (Database *gb) 
+{
 	memset(gb, 0, sizeof(Database));
 	gb->filename = NULL;
 	gb->sql      = NULL;
@@ -3417,8 +3161,8 @@ _Bool sq_init (Database *gb) {
 }
 
 
-/*Open a database and leave it open*/
-_Bool sq_open (Database *gb, const char *filename) 
+//Open a database and leave it open
+_Bool sq_open (Database *gb, const char *filename)
 {
 	//Initialize this
 	memset(gb, 0, sizeof(Database));
@@ -3429,93 +3173,217 @@ _Bool sq_open (Database *gb, const char *filename)
 	gb->filename = NULL;
 
 	//Then open the database and return a handle
-	if (sqlite3_open(filename, &gb->db) != SQLITE_OK)  
-	{
-		fprintf(stderr, "%s\n", sqlite3_errmsg(gb->db) );
-		return 0;
-	}
+	if ( sqlite3_open(filename, &gb->db) != SQLITE_OK )
+		return serr( ERR_DB_OPEN, gb, sqlite3_errmsg(gb->db) );
 
-#ifdef SQ_VERBOSE
-	fprintf( stderr, "Opening SQLITE database: %s\n", filename );
-#endif
+	VPRINT( "Opening SQLITE database: %s\n", filename );
 	return 1;
 }
 
 
-
-//Executes a SQL statement
-_Bool sq_exec (Database *gb, const char *sql) 
+//Destroy
+void *sq_destroy( void *p ) 
 {
-	/*Finalize if not already done*/
-	(gb->stmt) ? sqlite3_finalize(gb->stmt) : 0;
+	Database *gb = (Database *)p;
+	( gb->stmt ) ? sqlite3_finalize( gb->stmt ) : 0;
+	sq_free( (Database *)gb );
+	return NULL;
+}
 
-	/*This is some silly shit here*/
-	int t = 0, a = 0, rc = 0;
-	while ((a = memtok(&sql[t], (uint8_t *)";\0", strlen(sql) - t, 2)) > -1) 
-	{
-		//Initialize a buffer
-		init_buf(&sql[t], buf, a); 
-		
-		//Prepare a statement
-		if ((rc = sqlite3_prepare_v2(gb->db, buf, -1, &gb->stmt, 0)) != SQLITE_OK)
-		{
-			sq_free( gb );
-			return berr(0, ERR_DB_PREPARE_STMT);
+
+//there should be a max of two SQL query execution functions
+//but really there should just be one.
+int sq_lexec ( Database *gb, const char *sql, const char *name, const SQWrite *w )
+{
+	int len = 0;
+	int rc = 0;
+	int pos = 1;
+	int bfw = 0;
+	int	a = 0;
+	int	title= 0;
+	const char *pq = NULL;
+	//SQInsert *stack = sq_inserters[0];
+	struct { char *names[127]; int count, ints[127]; } col = {{0}, 0, {0} };
+	uint8_t *src = NULL;
+	Parser q = { 
+		.words={
+			{ (char *)sqlite3_E },
+			{ (char *)sqlite3_C },
+			{ (char *)sqlite3_N },
+			{ NULL }
 		}
+	};
+	
+	//Shutdown empty queries.
+	if ( !sql ) 
+		return serr( ERR_DB_NO_QUERY, gb, NULL );	
+
+	//Shutdown empty databases.
+	if ( !gb ) 
+		return serr( ERR_DB_UNINITIALIZED, gb, NULL );	
+
+	//Trim the received query
+	if ( !(pq = ( char * )trim( (uint8_t *)sql, " \t\n\r", strlen( sql ), &len )) )
+		return serr( ERR_DB_NO_QUERY, gb, NULL );	
+
+	//What's going on?
+	VPRINT( "Database: %p, SQL stmt: %s, name: %s, Writer: %p\n", 
+		(void *)gb, pq, name, (void *)w );
+	VPRINT( "Preparing statement: %s\n", pq );
+		
+	//Prepare
+	if ( (rc = sqlite3_prepare_v2(gb->db, pq, -1, &gb->stmt, 0)) != SQLITE_OK )
+		return serr( ERR_DB_PREPARE_STMT, gb, sqlite3_errmsg( gb->db ) );
+
+	//Bind first (if any need)
+	while (w && !w->sentinel) {
+		VPRINT( "Attempting to bind argument of type '%s' "
+			"at %d to statement %s\n", SQ_TYPE(w->type), pos, pq );
+		
+		char locErr[2048] = {0};
+		if ( sq_add( gb->stmt, pos, w, locErr ) ) {
+			//TODO: So much more to be done here...
+			return serr( ERR_DB_BIND_VALUE, gb, pos, pq );
+		}
+
+		w++, pos++;
+	}
+		
+	//Initialize buffers and tables for result set
+	if ( !bf_init( &gb->header, NULL, 1 ) || !bf_init( &gb->results, NULL, 1 ) )
+		return serr( ERR_DB_RESULT_INIT, gb, NULL );
+
+	//Initialize a Table for result viewing 
+	if ( !lt_init( &gb->kvt, NULL, 1024 ) )
+		return serr( ERR_DB_RESULT_INIT, gb, NULL );
+
+	//Start reading
+	if ( !sq_reader_start ( (Database *)gb, pq, !w ? nullw : w ) )
+		return serr( ERR_DB_RESULT_INIT, gb, NULL );
+
+	//Unless there are a ton of columns, we should be fine with this.
+	if (( col.count = sqlite3_column_count( gb->stmt )) > 127 ) {
+		VPRINT( "too many columns for result set\n" );
+		return serr( ERR_DB_COLUMN_MAX, gb, NULL );
+	}
+	else if ( col.count == 0 ) {
+		VPRINT( "0 columns, so this is probably some other statement...\n" );
+		//This is probably some other type of statement.
 
 		//Step to commit the record
 		if ((rc = sqlite3_step(gb->stmt)) != SQLITE_DONE) 
 		{
 			sqlite3_finalize(gb->stmt);
 			sq_free( gb );
-			return berr(0, ERR_DB_STEP);	
+			return serr( ERR_DB_STEP, gb, NULL );
 		}
 
-		//Move up the indicator
-		t += a + 1;
-	} 
+		//db->kvt and db->results should be set to NULL or something
+		return 1;
+	}
+	
+	//Add each of the keys to the top of the table
+	for (int len=0, i=0; i < col.count; i++ ) {
+		uint8_t *name = (uint8_t *)sqlite3_column_name(gb->stmt, i);
 
-	//Finalize b/c we're finished
-	sqlite3_finalize(gb->stmt);
-	gb->stmt = NULL;
-	return 1;	
-}
+		//Fail if we couldn't add a column.
+		if ( !bf_append( &gb->header, name, ( len = strlen( (char *)name ) )) )
+			return serr( ERR_DB_COLUMN_ADD, gb, name );
 
+		if ( !bf_append( &gb->header, (uint8_t *)"\0", 1 ) )
+			return serr( ERR_DB_ZERO_TERM, gb, NULL );
 
-
-//Insert values with a SQL statement that needs to be bound
-_Bool sq_exec_complex (Database *gb, const char *sql, const SQWrite *w) 
-{
-	int rc, pos = 1;
-	SQInsert *stack = sq_inserters[0];
-
-	//Prepare
-	if ((rc = sqlite3_prepare_v2(gb->db, sql, -1, &gb->stmt, 0)) != SQLITE_OK) {
-		fprintf(stderr, "errerr: %s\n", sqlite3_errmsg(gb->db));
-		return 0; //err(NULL, ERR_DB_PREPARE_STMT);
+		col.ints[ i ] = pos;
+		pos += len + 1;
+	}
+	
+	//Set the column names?
+	for (int i=0; i < col.count; i++ ) {
+		col.names[i] = (char *)&(&gb->header)->buffer[ col.ints[i] ];	
 	}
 
-	//Loop and bind each value
-	while (!w->sentinel) {
-		if (!stack[w->type].fp (gb->stmt, pos, w))
-			return 0;
-		w++, pos++;
+	//This expects just one file
+	for ( int dc; sq_reader_continue( (Database *)gb ) ; ) {
+		#if 0
+		//Todo: this may be a bad idea...
+		//If there were no results, no need to save anything, but it's not a failure
+		if ( !( dc = sqlite3_data_count(gb->stmt) ) )
+			return 1; //lt_free( &db->header ); sq_close( (Database *)gb );
+		#endif
+
+		//Using a hash table is such a good call
+		for (int i=0; i < (dc = sqlite3_data_count(gb->stmt)); i++ ) {
+			//All of the templates Could go together here if you were so inclined
+			int len    = sqlite3_column_bytes(gb->stmt, i);
+			uint8_t *b = (uint8_t *)sqlite3_column_blob(gb->stmt, i); 
+			uint8_t *c = (i == (dc - 1)) ? (uint8_t *)sqlite3_N : (uint8_t *)sqlite3_C;
+
+			//Add value and terminator to buffer
+			if ( !bf_append( &gb->results, b, len) )
+				return serr( ERR_DB_ADD_VALUE, gb, NULL );
+			//Add terminator to buffer
+			if ( !bf_append( &gb->results, c, sqlite3_L ) ) 
+				return serr( ERR_DB_ADD_TERM, gb, (i == (dc - 1)) ? "row" : "column" );
+		}
 	}
 
-	//Step and execute
-	if ((rc = sqlite3_step(gb->stmt)) != SQLITE_DONE) {
-		return 0;//err(NULL, ERR_DB_STEP);
+	//Check results to see if anything has been written
+	if ( !bf_written( &gb->results ) ) {
+		VPRINT( "No rows in query contain data.\n" );
+		return 1;
 	}
 
-	//Finalize statement
-	if (gb->stmt) {
-		sqlite3_finalize(gb->stmt);
-		gb->stmt = NULL;
+	//Mark the end
+	bf_append( &gb->results, (uint8_t *)"\0", 1 );
+	src = bf_data( &gb->results );
+	bfw = bf_written( &gb->results );
+	memset( &src[ bfw - ( sqlite3_L + 1 ) ], '3', sqlite3_L );
+
+	//Set everything needed for parsing
+	pr_prepare( &q );
+
+	//Add a query name (free it later)
+	if ( name ) {
+		gb->qname = malloc( strlen( name ) + 1 );
+		memset( gb->qname, 0, strlen( name ) + 1 );
+		memcpy( gb->qname, name, strlen( name ) );
+		lt_addblobkey( &gb->kvt, (uint8_t *)gb->qname, strlen( name ) );
+		lt_descend( &gb->kvt );
 	}
 
+	//TODO: Why is this run?
+	lt_addintkey( &gb->kvt, title );
+	lt_descend( &gb->kvt );
+
+	//Loop through all and put them in a malloc'd area.
+	while ( pr_next( &q, src, bfw ) ) {
+		lt_addblobkey( &gb->kvt, (uint8_t *)col.names[a], strlen( col.names[a] ));
+		lt_addblobvalue( &gb->kvt, &src[ q.prev ], q.size );
+		lt_finalize ( &gb->kvt );
+		( a == col.count - 1 ) ? a = 0 : a++;
+
+		if ( !q.word )
+			break;
+		else if ( *q.word == '3' ) {
+			lt_ascend( &gb->kvt );
+			break;
+		}
+		else if ( *q.word == '{' ) {
+			lt_ascend( &gb->kvt );
+			lt_addintkey( &gb->kvt, ++title );
+			lt_descend( &gb->kvt );
+		}
+	}
+
+	if ( name ) {
+		lt_ascend( &gb->kvt );
+	}
+
+	lt_lock( &gb->kvt );
 	return 1;
 }
-/*Close a database and finalize any prepared statement*/
+
+//Close a database and finalize any prepared statement
 _Bool sq_close (Database *gb) 
 {
 	(gb->stmt) ? sqlite3_finalize(gb->stmt) : 0;
@@ -3523,12 +3391,11 @@ _Bool sq_close (Database *gb)
 	bf_free( &gb->header );
 	bf_free( &gb->results );
 	free( gb->qname );
-	return (sqlite3_close(gb->db) != SQLITE_OK) ? berr(0, ERR_DB_CLOSE) : 1;
+	return (sqlite3_close(gb->db) != SQLITE_OK) ? serr(ERR_DB_CLOSE, gb, NULL ) : 1;
 }
 
 
-
-/*Starts reading from a set of results, subsequent calls will get next result*/
+//Starts reading from a set of results, subsequent calls will get next result
 _Bool sq_read (Database *gb, const char *sql) 
 {
 	(gb->stmt) ? sqlite3_finalize(gb->stmt) : 0;
@@ -3537,7 +3404,7 @@ _Bool sq_read (Database *gb, const char *sql)
 		if (sqlite3_prepare_v2(gb->db, sql, -1, &gb->stmt, 0) != SQLITE_OK) 
 		{
 			sq_free( gb );
-			return berr(0, ERR_DB_PREPARE_STMT);
+			return serr(ERR_DB_PREPARE_STMT, gb, NULL);
 		}
 		gb->read_started = 1;
 	}
@@ -3551,11 +3418,11 @@ _Bool sq_read (Database *gb, const char *sql)
 
 
 
-/*Finds a specific value in a row of an open database handle*/
+//Finds a specific value in a row of an open database handle
 int sq_find (Database *gb, const char *colname) {
 	int cc = sqlite3_data_count(gb->stmt);
-	for (int i=0; i<cc; i++)  {
-		if (strcmp(sqlite3_column_name(gb->stmt, i), colname) == 0) {
+	for ( int i=0; i<cc; i++ )  {
+		if ( strcmp(sqlite3_column_name(gb->stmt, i), colname) == 0 ) {
 			return i;
 		} 
 	}
@@ -3599,53 +3466,6 @@ void sq_write_value_print (SQWrite *w) {
 
 
 
-//....
-void sq_write_print (Database *gb, SQWrite *w) {
-	SQReader *stack = sq_readers[1];
-	int i=0;
-	while (!w->sentinel) {
-		if (!stack[w->type].fp (gb->stmt, i, NULL))
-			return;
-		w++, i++;
-	}
-}
-
-
-
-//Insert values with a SQL statement that needs to be bound
-_Bool sq_insert (Database *gb, const char *sql, const SQWrite *w) 
-{
-	int rc, pos = 1;
-	SQInsert *stack = sq_inserters[0];
-
-	//Prepare
-	if ((rc = sqlite3_prepare_v2(gb->db, sql, -1, &gb->stmt, 0)) != SQLITE_OK) {
-		fprintf(stderr, "errerr: %s\n", sqlite3_errmsg(gb->db));
-		return 0; //err(NULL, ERR_DB_PREPARE_STMT);
-	}
-
-	//Loop and bind each value
-	while (!w->sentinel) {
-		if (!stack[w->type].fp (gb->stmt, pos, w))
-			return 0;
-		w++, pos++;
-	}
-
-	//Step and execute
-	if ((rc = sqlite3_step(gb->stmt)) != SQLITE_DONE) {
-		return 0;//err(NULL, ERR_DB_STEP);
-	}
-
-	//Finalize statement
-	if (gb->stmt) {
-		sqlite3_finalize(gb->stmt);
-		gb->stmt = NULL;
-	}
-
-	return 1;
-}
-
-
 
 //a reader: starts, runs and ends 
 _Bool sq_reader_start (Database *gb, const char *sql, const SQWrite *w) 
@@ -3656,18 +3476,21 @@ _Bool sq_reader_start (Database *gb, const char *sql, const SQWrite *w)
 		gb->stmt = NULL;
 	}	
 
-	if (sqlite3_prepare_v2(gb->db, sql, -1, &gb->stmt, 0) != SQLITE_OK) {
+	if ( sqlite3_prepare_v2(gb->db, sql, -1, &gb->stmt, 0) != SQLITE_OK ) {
 		sq_free( gb );
-		return berr(0, ERR_DB_PREPARE_STMT);
+		return serr(ERR_DB_PREPARE_STMT, gb, NULL);
 	}
 
 	//Loop and bind each value if you gave it something
 	if (w) {
 		int pos = 1;
-		SQInsert *stack = sq_inserters[0];
-		while (!w->sentinel) {
-			if ( !stack[w->type].fp (gb->stmt, pos, w) )
-				return 0;
+		//SQInsert *stack = sq_inserters[0];
+		char locErr[2048] = {0};
+		while ( !w->sentinel ) {
+			if ( sq_add( gb->stmt, pos, w, locErr ) ) {
+				//TODO: So much more to be done here...
+				return serr( ERR_DB_BIND_VALUE, gb, pos, sql);
+			}
 			w++, pos++;
 		}
 	}
@@ -3700,200 +3523,6 @@ int sq_reader_find (Database *gb, const char *colname) {
 }
 
 
-//Save database results to table
-int sq_save (Database *db, const char *query, const char *name, const SQWrite *w )
-{
-	//...
-	int len = 0;
-	//define a name for model (if you want one)
-	const char *pq = NULL;
-
-	//Shut down attempts to send null queries
-	if ( !query ) {
-		fprintf( stderr, "No query specified...\n" );
-		return 0;
-	}
-
-	//Shut down attempts to read unopened databases
-	if ( !db ) {
-		fprintf( stderr, "No open database was detected...\n" );
-		return 0;
-	}
-
-
-
-	//Trim the received query
-	pq = (char *)trim((uint8_t *)query, " \t\n\r", strlen(query), &len ); 
-
-	//Run any other statement
-	if ( !memchr( "sS", *pq, 2 ) ) 
-	{
-		if ( !sq_exec_complex ( (Database *)db, pq, w ) ) 
-		{
-			fprintf( stderr, "sql_wrap: Failed to execute complex query.\n" );
-			return 0;
-		}
-	}
-	//Run selects
-	else
-	{
-		//Set the hash table's source to point the buffer's data
-		char *columnNames[127] = { NULL };
-		int columnInts[127]    = { 0 };
-		int pos         = 0,
-		    columnCount = 0,
-		    bfw         = 0, 
-		    a           = 0, 
-		    title       = 0; 
-		uint8_t *src    = NULL;
-		Parser q = { .words={
-			{ (char *)sqlite3_E },
-			{ (char *)sqlite3_C },
-			{ (char *)sqlite3_N },
-			{ NULL }
-		}};
-
-		//Initialize buffer for column names
-		if ( !bf_init( &db->header, NULL, 1 ) ) {
-			fprintf( stderr, "bf_init failed...\n" );
-			return 0;
-		}
-
-		//Initialize buffer for result set
-		if ( !bf_init( &db->results, NULL, 1 ) ) {
-			fprintf( stderr, "initialization of results failed...\n" );
-			return 0;
-		}
-
-		//Initialize a Table for result viewing 
-		if ( !lt_init( &db->kvt, NULL, 1024 ) ) 
-		{
-			fprintf( stderr, "bf_init failed...\n" );
-			return 0;
-		}
-	
-		//Start reading
-		if ( !sq_reader_start ( (Database *)db, pq, !w ? nullw : w ) ) {
-			fprintf( stderr, 	"start failed...\n" );
-			return 0;//http_err( h, 404, "Page not found." );
-		}
-
-		//Unless there are a ton of columns, we should be fine with this.
-		if (( columnCount = sqlite3_column_count( db->stmt )) > 127 ) {
-			fprintf( stderr, "sql_wrap: Too many rows...\n" );
-			return 0;
-		}
-
-
-		//Add each of the keys to the top of the table
-		for (int i=0; i < columnCount; i++ )
-		{
-			uint8_t *name = (uint8_t *)sqlite3_column_name(db->stmt, i);
-			int len = strlen( (char *)name );
-			if ( !bf_append( &db->header, name, len ) ) {
-				fprintf( stderr, "sql_wrap: Failed to add key names.\n" );
-				return 0;
-			}
-			if ( !bf_append( &db->header, (uint8_t *)"\0", 1 ) ) { 
-				fprintf( stderr, "sql_wrap: Failed to add sep.\n" );
-				return 0;
-			}
-			columnInts[ i ] = pos;
-			pos += len + 1;
-		}
-
-		for (int i=0; i < columnCount; i++ )
-			columnNames[i] = (char *)&(&db->header)->buffer[ columnInts[i] ];	
-
-		//This expects just one file
-		while ( sq_reader_continue( (Database *)db ) ) 
-		{
-			int dc = sqlite3_data_count(db->stmt);
-			//If there were no results
-			if ( !dc ) {
-				//lt_free( &db->header );
-				sq_close( (Database *)db );
-				return 0;
-			}
-
-			/*Using a hash table is such a good call*/
-			for (int i = 0; i < dc; i++ ) 
-			{
-				//All of the templates could go together here if you were so inclined
-				int len    = sqlite3_column_bytes(db->stmt, i);
-				uint8_t *b = (uint8_t *)sqlite3_column_blob(db->stmt, i); 
-				uint8_t *c = (i == dc - 1) ? (uint8_t *)sqlite3_N : (uint8_t *)sqlite3_C;
-
-				//Add value to buffer
-				if ( !bf_append( &db->results, b, sqlite3_column_bytes(db->stmt, i)) )
-				{
-					fprintf( stderr, "sql_wrap: Failed to add result set.\n" );
-					return 0;
-				}
-
-				if ( !bf_append( &db->results, c, sqlite3_L ) ) {
-					fprintf( stderr, "sql_wrap: Failed add sep.\n" );
-					return 0;
-				}
-			}
-		}
-
-		//Mark the end
-		bf_append( &db->results, (uint8_t *)"\0", 1 );
-		src = bf_data( &db->results );
-		bfw = bf_written( &db->results );
-		memset( &src[ bfw - ( sqlite3_L + 1 ) ], '3', sqlite3_L );
-
-		//Set everything needed for parsing
-		pr_prepare( &q );
-
-		//Add a query name (free it later)
-		if ( name ) 
-		{
-			db->qname = malloc( strlen( name ) + 1 );
-			memset( db->qname, 0, strlen( name ) + 1 );
-			memcpy( db->qname, name, strlen( name ) );
-			//db->qname[ strlen( name ) ] = '\0';
-			lt_addblobkey( &db->kvt, (uint8_t *)db->qname, strlen( name ) );
-			lt_descend( &db->kvt );
-		}
-
-		lt_addintkey( &db->kvt, title );
-		lt_descend( &db->kvt );
-
-
-		//Loop through all and put them in a malloc'd area.
-		while ( pr_next( &q, src, bfw ) )
-		{
-			lt_addblobkey( &db->kvt, (uint8_t *)columnNames[a], strlen( columnNames[a] ));
-			lt_addblobvalue( &db->kvt, &src[ q.prev ], q.size );
-			lt_finalize ( &db->kvt );
-			( a == columnCount - 1 ) ? a = 0 : a++;
-
-			if ( !q.word )
-				break;
-			else if ( *q.word == '3' )
-			{
-				lt_ascend( &db->kvt );
-				break;
-			}
-			else if ( *q.word == '{' ) 
-			{
-				lt_ascend( &db->kvt );
-				lt_addintkey( &db->kvt, ++title );
-				lt_descend( &db->kvt );
-			}
-		}
-
-		if ( name ) {
-			lt_ascend( &db->kvt );
-		}
-	}
-
-	lt_lock( &db->kvt );
-	//lt_printall ( &db->kvt );
-	return 1;	
-}
 #endif
 
 
@@ -4037,6 +3666,8 @@ char * rand_any
 static const unsigned long CV_1T = 1000;
 static const unsigned long CV_1M = 1000000;
 static const unsigned long CV_1B = 1000000000;
+#ifdef DEBUG_H
+#endif
 
 //Initiailize a timer
 void __timer_init (Timer *t, LiteTimetype type) 
@@ -4054,7 +3685,7 @@ void __timer_set_name (Timer *t, const char *label)
 
 
 //Start a currently running timer
- #ifndef CV_VERBOSE_TIMER 
+ #ifndef DEBUG_H 
 void __timer_start (Timer *t)
 {
  #else
@@ -4069,7 +3700,7 @@ void __timer_start (Timer *t, const char *file, int line)
 
 
 //Stop a currently running timer
- #ifndef CV_VERBOSE_TIMER 
+ #ifndef DEBUG_H 
 void __timer_end (Timer *t)
 {
  #else
@@ -4079,6 +3710,38 @@ void __timer_end (Timer *t, const char *file, int line)
 	t->lineend = line;
  #endif 
 	clock_gettime( t->clockid, &t->end );
+}
+
+
+//Return the current time (in a platform agnostic way)
+char *timer_now( Timer *t )
+{
+#if 1
+	time_t tm = time( NULL ); 
+	snprintf( t->ts_string, sizeof( t->ts_string ), "%s", ctime( &tm )); 
+	if ( t->ts_string[ strlen( t->ts_string ) - 1 ] == '\n' ) {
+		t->ts_string[ strlen( t->ts_string ) - 1 ] = '\0';
+	}
+#else
+	t->clockid = CLOCK_REALTIME;
+	clock_gettime( t->clockid, &t->start );
+	struct tm tm;
+	//tm.tm_sec = t->start.tv_sec % 60;
+	fprintf( stderr, "seconds\n" );
+	nlprintf( t->start.tv_sec % 60 ); 
+	fprintf( stderr, "min\n" );
+	nlprintf( ( t->start.tv_sec / 60 ) % 60 ); 
+	fprintf( stderr, "hour\n" ); //This seems wrong, but we are 5 hours ahead
+	nlprintf( ( ( t->start.tv_sec / 60 ) / 60 ) % 12 ); 
+	fprintf( stderr, "day\n" );
+	//60 secs * 60 min * 24 = 86400 secs per day, crude math would give me this...
+	//add all leap years since 1970, then the remaining
+	nlprintf(( t->start.tv_sec / 86400 ) % 365 );
+	//nlprintf( ( ( ( t->start.tv_sec / 60 ) / 60 ) / 24 ) % 365 ); 
+	//nlprintf( t->start.tv_sec % 60 ); 
+	//strftime( t->ts_string, sizeof( t->ts_string ), "%a %b %d %I:%M:%S %Y", t-> );
+#endif
+	return t->ts_string;
 }
 
 
@@ -4166,16 +3829,16 @@ void __timer_eprint (Timer *t)
 
 #ifndef SOCKET_H
 //Get the address information of a socket.
-void socket_addrinfo (Socket *sock)
+int socket_addrinfo (Socket *sock)
 {
-	fprintf(stderr, "%s\n", "Getting address information for socket.");
+	VPRINT( "Getting address information for socket." );
 
 	struct addrinfo *peek; 
 	struct sockaddr_in *ipv4;
 	struct sockaddr_in6 *ipv6;
 	int status = getaddrinfo(sock->hostname, sock->portstr, &sock->hints, &sock->res);
 	if (status != 0)
-		err(1, "Could not get address information for this socket.");
+		return serr( ERR_SOCKET_GETADDRINFO, sock, gai_strerror( errno ) ); 
 
 	/* Loop through each */
 	for (peek = sock->res; peek != NULL; peek = peek->ai_next) {
@@ -4195,7 +3858,7 @@ void socket_addrinfo (Socket *sock)
 		if (inet_ntop(peek->ai_family, addr, sock->address, sizeof(sock->address)) == NULL)
 			continue;
 	
-		fprintf(stderr, "%s: %s\n", ipver, sock->address);
+		VPRINT( "%s: %s\n", ipver, sock->address);
 		/* Break somewhere after finding a valid address. */
 		break;
 	}
@@ -4206,6 +3869,7 @@ void socket_addrinfo (Socket *sock)
 	/* A list will probably be used here */
 	// OBJECT(list) *addresses
 	// { .ipver = 4, ipstr = 192.10..., .ipbin = peek->ai_addr, .len = peek->ai_addrlen }
+	return 1;
 }
 
 
@@ -4218,28 +3882,29 @@ _Bool socket_open (Socket *sock)
 	sock->bufsz = !sock->bufsz ? 1024 : sock->bufsz;
 	sock->opened = 0;
 	sock->backlog = 500;
-	sock->waittime = 5000;  // 3000 microseconds
+	sock->waittime = 5000;
 
-	if (!sock->proto || !strcmp(sock->proto, "TCP") || !strcmp(sock->proto, "tcp"))
+	//Automatically choose TCP if nothing is specified
+	int sock_opt = 0;
+	if ( !sock->proto || !strcmp(sock->proto, "TCP") || !strcmp(sock->proto, "tcp") ) {
+		sock_opt = 1;
 		set_sockopts(SOCK_STREAM, PF_INET, IPPROTO_TCP);
-	else if (!strcmp(sock->proto, "udp") ||!strcmp(sock->proto, "UDP"))
+	}
+	else if ( !strcmp(sock->proto, "udp") ||!strcmp(sock->proto, "UDP") ) {
+		sock_opt = 1;
 		set_sockopts(SOCK_DGRAM, PF_INET, IPPROTO_UDP);
-
-	/* Check port number (clients are zero until a request is made) */
-	if (!sock->port || sock->port < 0 || sock->port > 65536) {
-		return err( 1, "Invalid port specified." );
 	}
 
+	//Die if no supported protocols were requested
+	if ( !sock_opt )
+		return serr( ERR_SOCKET_INVALID_PROTOCOL, sock, sock->proto );
 
-	/* Set up the address data structure for use as either client or server */	
-	if (sock->_class == 's') 
-	{
-		/*there must be a way to do this WITHOUT malloc*/
-		//if ((sock->srvaddrinfo = (struct sockaddr_in *)nalloc(sizeof(struct sockaddr_in), "sockaddr.info")) == NULL)
-		//	return;
-			//return errnull("Could not allocate structure specified.");
+	/* Check port number (clients are zero until a request is made) */
+	if (!sock->port || sock->port < 0 || sock->port > 65536)
+		return serr( ERR_SOCKET_INVALID_PORT_NUMBER, sock, NULL );
 
-		/*This ought to work...*/
+	// Set up the address data structure for use as either client or server
+	if (sock->_class == 's') {
 		sock->srvaddrinfo = &sock->tmpaddrinfo;
 		memset(sock->srvaddrinfo, 0, sizeof(struct sockaddr_in));
 		struct sockaddr_in *saa = sock->srvaddrinfo; 
@@ -4249,7 +3914,6 @@ _Bool socket_open (Socket *sock)
 	}
 	else if (sock->_class == 'c') 
 	{
-		/* Set up the addrinfo structure for a future client request. */
 		struct addrinfo *h; 
 		memset(&sock->hints, 0, sizeof(sock->hints));
 		h = &sock->hints;
@@ -4257,13 +3921,14 @@ _Bool socket_open (Socket *sock)
 		h->ai_socktype = sock->conntype;
 	}
 
-	/* Finally, create a socket. */
-	if ((sock->fd = socket(sock->domain, sock->conntype, sock->protocol)) == -1) {
-		return 0;
-	}
+	//Finally, create a socket.
+	if ((sock->fd = socket(sock->domain, sock->conntype, sock->protocol)) == -1)
+		return serr( ERR_SOCKET_CREATE, sock, strerror( errno ) );
+
+	//Mark open flag.
 	sock->opened = 1;
 
-	/* Set timeout, reusable bit and any other options */
+	//Set timeout, reusable bit and any other options 
 	struct timespec to = { .tv_sec = 2 };
 	if (setsockopt(sock->fd, SOL_SOCKET, SO_REUSEADDR, &to, sizeof(to)) == -1) {
 		// sock->free(sock);
@@ -4274,26 +3939,58 @@ _Bool socket_open (Socket *sock)
 }
 
 
-
 //Bind to a socket
 _Bool socket_bind (Socket *sock) {
-	//set errno
-	return (bind(sock->fd, (struct sockaddr *)sock->srvaddrinfo, sizeof(struct sockaddr_in)) != -1);
-//		return errsys("Could not bind to socket.");
+	int status = bind(sock->fd, (struct sockaddr *)sock->srvaddrinfo, sizeof(struct sockaddr_in)); 
+	if ( status == -1 ) {
+		return serr( ERR_SOCKET_LISTEN, sock, strerror( errno ) );
+	}
+	return 1;
 }
-
 
 
 //Listen for connections over a socket.
-_Bool socket_listen (Socket *sock)
+_Bool socket_listen (Socket *sock) {
+	int status = listen(sock->fd, sock->backlog);
+	if ( status == -1 ) {
+		return serr( ERR_SOCKET_LISTEN, sock, strerror( errno ) );
+	}
+	return 1; 
+}
+
+
+//Opens a non blocking socket.
+_Bool socket_tcp_recv (Socket *sock, uint8_t *msg, int *len) 
 {
-	//set errno
-	return (listen(sock->fd, sock->backlog) != -1);
-		//return errsys("Could not listen out on socket.");
+	int t = 0, 
+      r = 0, 
+      w = ( *len > 0 ) ? *len : 64;
+
+	//If it's -1, die.  If it's less than buffer, die
+	while (1) {
+		//Error occurred, free or reset the buffer and die
+		if ( (r = read(sock->fd, &msg[ t ], w )) == -1 ) {
+			//handle recv() errors...
+			sock->err = errno;
+			return 0;
+		}
+
+		//...
+		if ( !r ) {
+			fprintf( stderr, "socket_tcp_recv should be done...\n" );
+			break;
+		}
+
+		t += r;
+	}
+
+	*len = t;
+	return 1;
 }
 
 
 
+#if 0
 //Open a socket for UDP
 _Bool socket_udp_recv (Socket *self)  {
 #if 0
@@ -4325,42 +4022,6 @@ _Bool socket_udp_recv (Socket *self)  {
 
 
 
-//Opens a non blocking socket.
-//This function is not a good idea for select I don't think...
-_Bool socket_tcp_recv (Socket *sock, uint8_t *msg, int *len) 
-{
-	int t = 0, 
-      r = 0, 
-      w = ( *len > 0 ) ? *len : 64;
-
-	//If it's -1, die.  If it's less than buffer, die
-	while (1) 
-	{
-		//Error occurred, free or reset the buffer and die
-		if ( (r = read(sock->fd, &msg[ t ], w )) == -1 )
-		{
-			//handle recv() errors...
-			sock->err = errno;
-			return 0;
-		}
-
-		//...
-		if ( !r )
-		{
-			fprintf( stderr, "socket_tcp_recv should be done...\n" );
-			break;
-		}
-
-		t += r;
-	}
-
-	*len = t;
-	return 1;
-}
-
-
-
-#if 0
 _Bool socket_udp_send (Socket *sock, uint8_t *msg, uint32_t len) {
 	int bs=0; 
 #if 0
@@ -4399,36 +4060,6 @@ _Bool socket_udp_send (Socket *sock, uint8_t *msg, uint32_t len) {
 #endif
 
 
-
-#if 0
-_Bool socket_tcp_send (Socket *sock, uint8_t *msg, uint32_t len) {
-	/* What is going on? */
-	int bs = 0;
-
-#if 0
-	fprintf(stderr, "Attempting to send message over fd '%d'\n", sock->fd);
-	fprintf(stderr, "message contents:\n");
-		
-	int c = 0;
-	// chardump(msg, ws > rcvd ? rcvd : ws);
-	for (c=0;c<msglen;c++)
-		fprintf(stderr, "'%c' ", msg[c]);
-#endif
-	while (1) { 
-		bs = send(sock->fd, msg, len, 0);
-		// usleep(sock->waittime);
-		if (bs==len)
-			break;
-		if (bs == -1)
-			return 0;
-		// keep trying
-	}
-	return SUCCESS;
-}
-#endif
-
-
-
 //Accept connections
 _Bool socket_accept (Socket *sock, Socket *new) {
 	/* Clone current socket data */
@@ -4447,7 +4078,7 @@ _Bool socket_accept (Socket *sock, Socket *new) {
 }
 
 
-
+#if 0
 //Send data via UDP
 _Bool socket_udp_send (Socket *sock, uint8_t *msg, uint32_t length) {
 	//int msglen = (!length) ? strlen(msg) : length;	
@@ -4482,6 +4113,7 @@ _Bool socket_udp_send (Socket *sock, uint8_t *msg, uint32_t length) {
 #endif
 	return 1;
 }
+#endif
 
 
 
@@ -4506,16 +4138,11 @@ _Bool socket_parse_uri (URIData *u, const char *uri) {
 #endif
 
 
-//Get address info
-_Bool socket_getaddrinfo (Socket *self) {
-	return 0;
-}
-
-
 //Refactor this to split out the connect steps.  Maybe create an iterator?
 int socket_connect (Socket *self, const char *uri, int port) 
 {
 	int fd, stat;
+	int connected = 0, resolved = 0;
 	char *ps;
 	char portstr[ 5 ] = {0};
 	struct addrinfo *r;
@@ -4523,52 +4150,56 @@ int socket_connect (Socket *self, const char *uri, int port)
 	// Quick check of port
 	if ( port < 1 || port > 65536 )
 	{
-		self->err = 2;
-		err( 2, "die die die..." );
+		VPRINT( "Port too large." );
+		return serr( ERR_SOCKET_INVALID_PORT_NUMBER, self, port );
 	}
 
 	// Make a string out of number
 	snprintf( portstr, 4, "%d", port );
 
-	// Get smart about this and parse URIs to make this a little simpler to use
-	// ...
-
 	// Always get canoncial name information
 	self->hints.ai_flags |= AI_CANONNAME;
 
 	// Get address information
+	VPRINT( "Getting address info." );
 	if ( (stat = getaddrinfo( uri, portstr, &self->hints, &self->res)) != 0 )
-	{
-		self->err = errno;
-		err(1, "%s", (char *)gai_strerror(stat));
-	}
+		return serr( ERR_SOCKET_GETADDRINFO, self, (char *)gai_strerror(stat) );
 
 	// ...
 	for ( r = self->res; r != NULL; r = self->res->ai_next ) 	
 	{
-		// I just want to see what's here...
-		fprintf( stderr, "%d\n", r->ai_addrlen );
-		fprintf( stderr, "%s\n", r->ai_canonname);
+		VPRINT( "r->ai_addrlen = %d\n", r->ai_addrlen );
+		VPRINT( "ai_canonname  = %s\n", r->ai_canonname);
 
 		// Bind to talk to the other guy
 		if ((self->fd = socket( r->ai_family, r->ai_socktype, r->ai_protocol )) == -1)
 		{
-			fprintf( stderr, "socket connect error: %s\n", strerror( errno ) );
+			VPRINT( "Attempt to open a connecting socket failed: %s\n", strerror( errno ) );
 			continue; //try again
 		}
 
 		// Connect
-		if (connect( self->fd, r->ai_addr, r->ai_addrlen) != -1)
+		if (connect( self->fd, r->ai_addr, r->ai_addrlen) != -1) {
+			VPRINT( "Connected succesfully!\n" );
+			resolved = 1, connected = 1;
 			break;
+		}
 		else 
 		{
-			fprintf( stderr, "socket connect error..." );
-			err(1, "%s", strerror(errno));	
+			VPRINT( "Attempt to connect to server failed: %s\n", strerror( errno ) );
+			//err(1, "%s", strerror(errno));	
 		}
 
 		// Close the parent if unsuccessful
-		if ( close( self->fd ) == -1 )
-			err(1, "%s", strerror(errno));	
+		if ( close( self->fd ) == -1 ) {
+			VPRINT( "Attempt to close parent socket file failed: %s\n", strerror( errno ) );
+			return serr( ERR_SOCKET_CONNECT_PARENT, self, strerror(errno));
+		}	
+	}
+
+	if ( !resolved && !connected ) {
+		freeaddrinfo( self->res );	
+		return serr( ERR_SOCKET_CONNECT, self, NULL );
 	}
 
 	freeaddrinfo( self->res );	
@@ -4584,22 +4215,18 @@ _Bool socket_tcp_send (Socket *sock, uint8_t *msg, uint32_t length)
 	int t   = 0;
 	int len = length;
 
-	while ( len )
-	{
-		//Run
-		if ( (bs = write(sock->fd, &msg[ t ], len)) == -1 )
-			return 0;
+	while ( len ) {
+		//Try to send data
+		//TODO: Can't other things return -1?
+		if ( (bs = write(sock->fd, &msg[ t ], len)) == -1 ) {
+			return serr( ERR_SOCKET_TCP_WRITE, sock, strerror(errno) );
+		}
 
 		//This should keep running
-		fprintf( stderr, "%d bytes written\n", bs );
+		VPRINT( "%d bytes written\n", bs );
 		t   += bs;
 		len -= t ;	
 	}
 	return 1;
 }
-#endif
-
-#ifndef SINW_H
-
-
 #endif

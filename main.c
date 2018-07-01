@@ -29,7 +29,8 @@ dsmp
 	Simple command line media player
 @end
  * -------------------------------------- */
-#define _POSIX_C_SOURCE 2
+//#define _POSIX_C_SOURCE 2
+#include "vendor/single.h"
 #include <stdio.h>
 #include <SDL/SDL.h>
 #include <signal.h>
@@ -40,8 +41,6 @@ dsmp
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/ioctl.h>
-#include "opt.h"
-#include "vorbis.h"
 
 /*Other settings*/
 #define NAME "dsmp"
@@ -57,7 +56,7 @@ dsmp
 #define reader() \
 	fprintf(stderr, (read(0, &key, 1) == -1 && errno == EAGAIN) ? "try again...\n" : "Got code '%c'\n");
 
-#define err(stat, ...) \
+#define jerr(stat, ...) \
 	while (1) { fprintf(stderr, "ERR: "); fprintf(stderr, __VA_ARGS__); return stat; }
 
 #ifdef ENABLE_LOG
@@ -113,7 +112,7 @@ dsmp
 const int8_t DEFAULT_FRAME_RATE = 20;
 static int j=0;
 static int64_t current_tv_sec=0;
-char *dirname=NULL;
+char *dsmpDirname=NULL;
 int buffsz = 64;
 double samprt = 44100;
 static FILE *wo=NULL;
@@ -172,8 +171,10 @@ typedef struct {
 } Playlist;
 
 struct Settings {
-	const char *filename, *dirname;
-	_Bool       nofork,   loop;
+	const char *filename, 
+						 *dirname;
+	_Bool       nofork,   
+							loop;
 }	settings = { NULL, NULL, 1, 0 };
 
 
@@ -181,8 +182,10 @@ void pathcpy (char *path, char *base, const char *filename) {
 	snprintf(path, PATH_MAX, "%s/%s", base, filename);
 }
 
+#ifdef IVORBIS_H
 void decode_vorbis ( ) {
 }
+#endif
 
 void decode_flac ( ) {
 }
@@ -213,7 +216,7 @@ _Bool load_directory (DIR *dir, Track *tracks, int32_t count) {
 			fprintf(stderr, "Adding '%s' to playlist.\n", md->d_name);
 		#endif
 			//fprintf(stderr, "Hash: %d, count: %d\n", hash, cnt); 
-			pathcpy(trk->filename, dirname, md->d_name);
+			pathcpy(trk->filename, dsmpDirname, md->d_name);
 			trk->hash = hash;
 			trk++, hash++, cnt++;
 		}
@@ -312,12 +315,12 @@ void audio_callback (void *userdata, uint8_t *stream, int len) {
 }
 
 /*Options array*/
-Opt opts[] = {
-	{ 0,"-l", "--loop",     "Enable looping.", },
-	{ 0,NULL, "--describe", "Describe an audio stream."                 },
-	{ 0,"-f", "--file",     "Choose a file to play.", 1, .callback=opt_set_filename },
-	{ 0,"-x", "--no-fork",  "Leave in foreground.", },
-	{ 0,"-d", "--dir",      "Select a directory.", 1, .callback=opt_set_dir },
+Option opts[] = {
+	{ "-l", "--loop",     "Enable looping.", },
+	{ NULL, "--describe", "Describe an audio stream."                 },
+	{ "-f", "--file",     "Choose a file to play.", 's' /*1, .callback=opt_set_filename*/ },
+	{ "-x", "--no-fork",  "Leave in foreground.", },
+	{ "-d", "--dir",      "Select a directory.", 's' /*1, .callback=opt_set_dir*/ },
 	{ .sentinel=1 }
 };
 
@@ -327,31 +330,25 @@ int main (int argc, char *argv[])
 {
 	/*Print banner and process options*/
 	print_version();
-	eval_opts();
 
-#ifdef DUMP_OPTIONS
-	dump_opts();
-#endif
+	//Then go through and set each.
+	( argc < 2 ) ? opt_usage( opts, "a", "Nothing to do.", 0 ) : opt_eval( opts, argc, argv );
 
-	/*Then go through and set each.*/
-	Opt *eval=opts;
-	_Bool file_mode=0, dir_mode=0;
-	while (!eval->sentinel) {
-		/*Option evaluation*/
-		int co=0;
-		if (optset("--loop"))
-			settings.loop     = 1; 
-		else if (optset("--no-fork"))
-			settings.nofork 	= 1; 
-		else if (optset("--file"))
-			settings.filename = eval->v.s, file_mode = 1;
-		else if (optset("--dir"))
-			dirname = eval->v.s, dir_mode = 1;
-		eval++;
-	}
+	int file_mode = 0, dir_mode = 0;
+	settings.loop = opt_set( opts, "--loop" ); 		
+	settings.nofork = opt_set( opts, "--no-fork" ); 		
+	settings.filename = opt_set( opts, "--file" ) ? opt_get(opts, "--file").s : NULL;
+	dsmpDirname = opt_set( opts, "--dir" ) ? opt_get( opts, "--dir" ).s : NULL;
+
+	nsprintf( settings.filename );
+	nsprintf( dsmpDirname );
+	niprintf( settings.nofork );
+	niprintf( settings.loop );
+
+exit(0);
 
 	if (SDL_Init(SDL_INIT_AUDIO) < 0)
-		err(0, "Couldn't initialize audio abstraction layer.\n");
+		jerr(0, "Couldn't initialize audio abstraction layer.\n");
 
 	/*Register signals and set up non-blocking reads*/
 	//signal(SIGSEGV, SIG_DFL);
@@ -386,26 +383,26 @@ int main (int argc, char *argv[])
 #else
 
 	if (dir_mode) {
-		if (!(dir = opendir(dirname)))
-			err(0, "Directory open failed...");
+		if (!(dir = opendir(dsmpDirname)))
+			jerr(0, "Directory open failed...");
 
 		if ((count = get_directory_count(dir)) < 0) 
-			err(0, "Directory error.");	
+			jerr(0, "Directory error.");	
 
 		if (!(track = (Track *)malloc(sizeof(Track) * (count + 1))))
-			err(0, "Couldn't load up all tracks...");
+			jerr(0, "Couldn't load up all tracks...");
 		
 		if (!load_directory(dir, track, count))
-			err(0, "Load error.");
+			jerr(0, "Load error.");
 
-		fprintf(stderr, "Directory '%s' contains %d files\n", dirname, count); 
+		fprintf(stderr, "Directory '%s' contains %d files\n", dsmpDirname, count); 
 		fprintf(stderr, "First file: %s\n", track->filename);
 		
 		if (closedir(dir) == -1)
-			err(0, "Error closing directory.");
+			jerr(0, "Error closing directory.");
 
 		if (!SDL_LoadWAV(track->filename, &(mv.as), &(mv.ap), &(mv.al))) 
-			err(0, "Failed to load audio file: %s\n", track->filename);
+			jerr(0, "Failed to load audio file: %s\n", track->filename);
 	
 		//tracks_printf(track);
 	}
@@ -413,7 +410,7 @@ int main (int argc, char *argv[])
 	else if (file_mode) {
 		/*Die if there are no files in the buffer (for now)*/
 		if (!settings.filename)
-			err(0, "No audio file supplied! (Try the --play flag to select one.)\n");
+			jerr(0, "No audio file supplied! (Try the --play flag to select one.)\n");
 	
 #if 0
 	vvvv_(settings.filename);
@@ -422,7 +419,7 @@ exit(0);
 #endif
 	
 		if (!SDL_LoadWAV(settings.filename, &(mv.as), &(mv.ap), &(mv.al))) 
-			err(0, "Failed to load audio file: %s\n", settings.filename);
+			jerr(0, "Failed to load audio file: %s\n", settings.filename);
 	}
 
 	else {
@@ -439,7 +436,7 @@ exit(0);
 
 	/*Open a device and play...*/
 	if (SDL_OpenAudio(&(mv.as), NULL) < 0)
-		err(0, "Failed to open audio stream: %s\n", SDL_GetError());
+		jerr(0, "Failed to open audio stream: %s\n", SDL_GetError());
 
 	/*Show the dump*/
 	print_av(&mv);	
@@ -455,7 +452,7 @@ exit(0);
 
 	/*Fork - suspend*/
 	if ((pid = (settings.nofork) ? 0 : fork()) == -1) {
-		err(0, "Error occurred while backgrounding: %s\n", strerror(errno));	
+		jerr(0, "Error occurred while backgrounding: %s\n", strerror(errno));	
 	}
 	else if (!pid) {
 		/*Play and control playback.*/
@@ -475,12 +472,15 @@ exit(0);
 			mv.sp += (mv.sp > 44100) ? -mv.sp : 100;
 
 			/*Get a keypress*/
-			if (read(0, &key, 1) > -1)
+			if (read(0, &key, 1) > -1) {
 				/*fprintf(stderr, "Got code '%d'\n", key)*/;
+			}
 
 			/*Loop a playing track*/
-			if (settings.loop && (mv.al < 5))
-				mv.ap -= (gl - re), mv.al = (gl - re); 
+			if (settings.loop && (mv.al < 10)) {
+				mv.ap -= (gl - re)
+			, mv.al = (gl - re); 
+			}
 
 			/*Handle some degree of rewinds...*/
 			if (key == 'p')
@@ -510,7 +510,7 @@ exit(0);
 					pause_if_playing();
 					mv.ap = NULL;
 					if (!SDL_LoadWAV(track->filename, &(mv.as), &(mv.ap), &(mv.al))) 
-						err(0, "Failed to load audio file: %s\n", track->filename);
+						jerr(0, "Failed to load audio file: %s\n", track->filename);
 					SDL_PauseAudio(0);
 				}
 			}
