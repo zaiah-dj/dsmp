@@ -3,7 +3,8 @@ NAME = dsmp
 SRC = vendor/single.c main.c
 OBJ = ${SRC:.c=.o}
 PREFIX = /usr/local
-VERSION = 0.2
+PKGDIR = $(NAME).$(VERSION)
+VERSION = 0.3
 MANPREFIX = ${PREFIX}/share/man
 LDDIRS = -L$(PREFIX)/lib
 LDFLAGS = -lSDL -lm
@@ -11,15 +12,22 @@ DFLAGS = -DSQROOGE_H -DENABLE_VERSION_BANNER -DVERSION="$(VERSION)" -DPRINT_ANIM
 CC = gcc
 CFLAGS = -g -Wall -Werror -Wno-maybe-uninitialized -Wno-unused -ansi -std=c99 -Wno-deprecated-declarations -O2 -pedantic-errors $(LDDIRS) $(LDFLAGS) $(DFLAGS) -Wno-strict-aliasing -Wno-format-truncation
 FLAGS = -p dte.wav -l -f 60 
-IGNORE = $(ALIAS) archive/* bin/* tools/* vendor/* wk/*
-ARCHIVEDIR = ..
-ARCHIVEFMT = gz
-ARCHIVEFILE = $(NAME).`date +%F`.`date +%H.%M.%S`.tar.${ARCHIVEFMT}
+IGNORE = archive/* vendor/*
 
 $(NAME): ${OBJ}
 	@echo CC -o $@ single.o main.o ${CFLAGS}
 	@${CC} -o $@ single.o main.o ${CFLAGS}
 
+.c.o:
+	@echo CC $<
+	@${CC} -c ${CFLAGS} $<
+
+clean:
+	@echo Cleaning
+	@rm -f $(NAME) *.o *.so *.dll
+
+
+#if 0
 debug:
 	@gdb 2>/dev/null || echo "Error: Dependency 'GDB' not present!"; gdb
 	@echo gdb -ex run --args ./$(NAME) $(FLAGS)
@@ -32,14 +40,6 @@ leak:
 	@echo valgrind --leak-check=full ./$(NAME) -f PeaktimeFunk.wav 
 	@valgrind --leak-check=full ./$(NAME) -f PeaktimeFunk.wav
 
-.c.o:
-	@echo CC $<
-	@${CC} -c ${CFLAGS} $<
-
-clean:
-	@echo Cleaning
-	@rm -f $(NAME) *.o *.so *.dll
-
 veryclean:
 	@echo Cleaning up version control files...
 	-find -type f -name "*.swo" | xargs rm
@@ -47,8 +47,20 @@ veryclean:
 	-find -type f -name "*.swn" | xargs rm
 	-find -type f -name "*.swl" | xargs rm
 
-install:
-	@cp dsmp $(PREFIX)/bin/ 
+pkg: clean
+pkg: veryclean 
+pkg:
+	@mkdir $(PKGDIR)/
+	@cp *.c README.md CHANGELOG style.css $(PKGDIR)/
+	@cp -r vendor $(PKGDIR)/
+	@cp -r img $(PKGDIR)/
+	echo sed "{ s/#[^if,^endif].$(WILDCARD)//; }" Makefile cpp ${PKGDEBUG:2>/dev/null} sed "{ /^#/d; s/^ /\t/ }" > $(PKGDIR)/Makefile
+	@sed "{ s/#[^if,^endif].$(WILDCARD)//; }" Makefile | \
+		cpp ${PKGDEBUG:-2>/dev/null} | \
+		sed "{ /^#/d; s/^ /\t/ }" > $(PKGDIR)/Makefile
+	@echo tar chzf $(PKGFILE) $(PKGDIR)
+	@tar chzf $(PKGFILE) $(PKGDIR)
+	@rm -rf $(PKGDIR)
 
 doc:
 	git checkout gh-pages
@@ -60,5 +72,9 @@ doc:
 
 html:
 	markdown -o index.html README.md
+#endif
+
+install:
+	@cp $(NAME) $(PREFIX)/bin/ 
 
 .PHONY: all options clean dist install uninstall permissions archive

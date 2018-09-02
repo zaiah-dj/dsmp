@@ -7,7 +7,9 @@ dsmp is a simple command line media player that uses SDL for audio sequencing.
 
 ## Setup and Dependencies
 
-dsmp depends on SDL 1.2 (ancient, I know) and some sort of Unix subsystem.
+dsmp depends on SDL 1.2 (ancient, I know) and some sort of Unix subsystem. In
+other words, Windows users probably won't be able to run this, but Linux, BSD,
+and OSX users should be fine.
 
 To build dsmp, download the latest copy and run:
 <pre>
@@ -41,11 +43,9 @@ Within the app, there are a few simple controls:
 |  K        | Move to the previous song in a directory.|  
 
 
-
 ## Screenshots
 
 ![Pretty Colors]( "img/icon.png" )
-
 
 
 ## Extension and Hacking
@@ -58,17 +58,25 @@ Flags that are supported:
 |-DPLAY_EMBEDDED         | Use embedded audio instead of an external audio file.
 |-DNO_FORK | Do not compile the ability to fork into the background.
 |-DNO_KEY | Do not compile the ability to process keypresses.
-
+|-DENABLE_LOG | Tell me everything that the program is doing, all the time.
 
 
 ## Bugs / Issues
-
-dsmp is a project I get very little time to work on.  With this being the case there are a few issues I have not had time to look at:
 
 - Crashes on skip forward and backward
 - Cannot play anything but WAV files, this is not good
 - Get rid of SDL dependency	
 
+
+## Author Information
+
+The guts of this program were written by me, Antonio R. Collins II, during a weekend when I had too much time on my hands.
+Fixes are merged in when I have the time and inclination to write them.
+You should reach out to me for any issues that you may encounter while using this program.
+Either of the following emails will work fine.
+
+- ramar@tubularmodular.com
+- ramar.collins@gmail.com
 
 
 <!-- Style and more... -->
