@@ -9,10 +9,10 @@ Here is the complete list of CLI options thus far:
 
 | Flag                 |  Description
 | ---------------------|------------------------------------------
+|-f, --file (arg)      |  Play one file from the command line.
 |-l, --loop            |  Enable looping. 
-|-d, --dir (arg)       |  Choose audio files from $dir.
-|-p, --play (arg)      |  Play a file on the command line.
-|-x, --no-fork (arg)   |  Use $arg resolution.
+|-d, --dir (arg)       |  Play all audio files in a chosen directory.
+|-h, --help            |  Show help and quit.
 
 
 Within the app, there are a few simple controls:
@@ -44,6 +44,8 @@ Flags that are supported:
 | ----------|------------------------------------------
 |-DENABLE_VERSION_BANNER | Turns version announcement on or off.
 |-DPLAY_EMBEDDED         | Use embedded audio instead of an external audio file.
+|-DNO_FORK | Do not compile the ability to fork into the background.
+|-DNO_KEY | Do not compile the ability to process keypresses.
 
 
 

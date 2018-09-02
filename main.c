@@ -31,6 +31,18 @@ dsmp
  * -------------------------------------- */
 //#define _POSIX_C_SOURCE 2
 #define PROG "dsmp"
+#define NAME "dsmp"
+#define AUTHOR "Antonio R. Collins II"
+#define PID "/tmp/"
+#define PID_FILE_NAME_LENGTH 25
+#define WIDTH 40
+#define HEIGHT 40
+#ifndef PATH_MAX
+ #define PATH_MAX 2048
+#endif
+#define NO_FORK
+#define NO_KEY
+
 #include "vendor/single.h"
 #include <stdio.h>
 #include <SDL/SDL.h>
@@ -43,16 +55,11 @@ dsmp
 #include <dirent.h>
 #include <sys/ioctl.h>
 
-/*Other settings*/
-#define NAME "dsmp"
-#define AUTHOR "Antonio R. Collins II"
-#define PID "/tmp/"
-#define PID_FILE_NAME_LENGTH 25
-#define WIDTH 40
-#define HEIGHT 40
-#ifndef PATH_MAX
- #define PATH_MAX 2048
-#endif
+#define print_settings() \
+	nsprintf( settings.filename ); \
+	nsprintf( settings.dirname ); \
+	niprintf( settings.nofork ); \
+	niprintf( settings.loop );
 
 #define reader() \
 	fprintf(stderr, (read(0, &key, 1) == -1 && errno == EAGAIN) ? "try again...\n" : "Got code '%c'\n");
@@ -63,6 +70,7 @@ dsmp
 #ifdef ENABLE_LOG
  #define log(f, ...) fprintf((f == NULL) ? stderr : f, __VA_ARGS__);
 #else
+ #define log(...)
 #endif
 
 #ifdef ENABLE_VERSION_BANNER
@@ -89,7 +97,8 @@ dsmp
 //Increment the current position of audio buffer by samples received and some other incrementor (i)
 #define cp(i) *(v->ap + v->sp + i) 
 
-#define set_eat() \
+#ifndef NO_KEY
+ #define set_eat() \
 	struct termios old={0}; \
 	fflush(stdout); \
 	if (tcgetattr(0, &old) < 0) \
@@ -101,15 +110,18 @@ dsmp
 	if (tcsetattr(0, TCSANOW, &old) < 0) \
 		fprintf(stderr, "Termio set error: %s\n", strerror(errno))
 
-#define set_norm() \
+ #define set_norm() \
 	fprintf(stderr, "Read error: %s\n", strerror(errno)); \
 	old.c_lflag |= ICANON; \
 	old.c_lflag |= ECHO; \
 	if (tcsetattr(0, TCSADRAIN, &old) < 0) \
 		fprintf(stderr, "Termio reset error: %s\n", strerror(errno))
+#else
+ #define set_eat()
+ #define set_norm()
+#endif
 
-
-/*Globals*/
+//Globals and constants
 const int8_t DEFAULT_FRAME_RATE = 20;
 static int j=0;
 static int64_t current_tv_sec=0;
@@ -137,24 +149,27 @@ const char *colors[] = {
 "\x1b[45m","\x1b[46m","\x1b[47m"
 };
 
-/*Data structure to load and hold audio*/
+
 typedef struct { 
-	/*Audio tracking*/
-	uint8_t      *ap;   /*Buffer as modified (but updates slowly)*/
-	uint32_t      al;	  /*Length as modified by audio_callback*/
+
+	//Audio tracking
+	uint8_t      *ap;   //Buffer as modified (but updates slowly)
+	uint32_t      al;	  //Length as modified by audio_callback
 	SDL_AudioSpec as;   
-	uint32_t      sp;   /*Position within the current buffer of samples*/
+	uint32_t      sp;   //Position within the current buffer of samples
 	uint8_t       vol;
-	/*General audio info*/
+
+	//General audio info
 	char         *filename;
 	char         *dirname;
 	_Bool         paused;
 
-	/*Information passed by visual functions*/
+	//Information passed by visual functions
 	void         *opaque;
 	_Bool         opqset;
-	SDL_Event	  event;
+	SDL_Event	    event;
 } Av;
+
 
 typedef struct {
 	char filename[PATH_MAX];
@@ -165,11 +180,13 @@ typedef struct {
 	_Bool sentinel;
 } Track;
 
+
 typedef struct { 
 	Track   *tracks;
 	int32_t  count;
 	char    *names;
 } Playlist;
+
 
 struct Settings {
 	const char *filename, 
@@ -179,34 +196,43 @@ struct Settings {
 }	settings = { NULL, NULL, 1, 0 };
 
 
-void pathcpy (char *path, char *base, const char *filename) {
-	snprintf(path, PATH_MAX, "%s/%s", base, filename);
-}
-
 #ifdef IVORBIS_H
 void decode_vorbis ( ) {
 }
 #endif
 
+#ifdef IFLAC_H
 void decode_flac ( ) {
 }
+#endif
 
+#ifdef ILAME_H
 void decode_mpeglayer3 ( ) {
 }
+#endif
 
-/*Load all audiofiles*/
+
+//Copy a path
+void pathcpy (char *path, char *base, const char *filename) {
+	snprintf(path, PATH_MAX, "%s/%s", base, filename);
+}
+
+
+//Load all audiofiles
 uint32_t get_directory_count (DIR *dir) {
-	/*Load the directory here*/
+	//Load the directory here
 	struct dirent *md;
 	uint32_t c=0;
-	while ((md = readdir(dir)))
+	while ((md = readdir(dir))) {
 		c += (strlen(md->d_name) > 4 && strcmp(&md->d_name[strlen(md->d_name) - 4], ".wav") == 0);
+	}
 	return c;
 }
 
-/*Load all audiofiles*/
+
+//Load all audiofiles
 _Bool load_directory (DIR *dir, Track *tracks, int32_t count) {
-	/*Load the directory here*/
+	//Load the directory here
 	int hash=0, cnt=0;
 	Track *trk = tracks;
 	struct dirent *md;
@@ -227,6 +253,7 @@ _Bool load_directory (DIR *dir, Track *tracks, int32_t count) {
 }
 
 
+//Print the track structure
 void tracks_printf (Track *tracks) {
 	Track *t = &tracks[0];
 	while (!t->sentinel) {
@@ -238,6 +265,7 @@ void tracks_printf (Track *tracks) {
 	}
 }
 
+
 //This is only for the things...
 void get_term_size () {
 	int fd=1;
@@ -245,6 +273,8 @@ void get_term_size () {
 	ioctl(fd, TIOCGWINSZ, &W);
 }
 
+
+//???
 void test_colors () {
 	char *mytext = "blablablamcbla\n";
 	for (int i=0; i<sizeof(colors)/sizeof(char *); i++) {	
@@ -256,6 +286,7 @@ void test_colors () {
 }
 
 
+//???
 void test_bar () {
 	static int rate;
 	int i=10;
@@ -280,7 +311,7 @@ void write_info (Track *track, void (*get_metadata)(const char *)) {
 
 }
 
-/*This function can be greatly modified later.*/
+//This function can be greatly modified later.
 void print_audiofile (SDL_AudioSpec *as) {
 	const char *sfmt = "%-30s %s\n";
 	const char *nfmt = "%-30s %d\n";
@@ -294,7 +325,7 @@ void print_audiofile (SDL_AudioSpec *as) {
 }
 
 
-/*Print the contents of audio structure*/
+//Print the contents of audio structure
 void print_av (Av *av) {
 	fprintf(stderr, "Audio pointer:    %p\n", (void *)av->ap);
 	fprintf(stderr, "Audio length:     %d\n", av->al);
@@ -303,7 +334,7 @@ void print_av (Av *av) {
 }
 
 
-/*Play that audio for real*/
+//Play that audio for real
 void audio_callback (void *userdata, uint8_t *stream, int len) {
 	Av *av=(Av *)userdata;
 	//print_av(av);
@@ -315,21 +346,24 @@ void audio_callback (void *userdata, uint8_t *stream, int len) {
 	av->al -= len;
 }
 
-/*Options array*/
+
+//Options array
 Option opts[] = {
 	{ "-l", "--loop",     "Enable looping.", },
-	{ NULL, "--describe", "Describe an audio stream."                 },
 	{ "-f", "--file",     "Choose a file to play.", 's' /*1, .callback=opt_set_filename*/ },
-	{ "-x", "--no-fork",  "Leave in foreground.", },
 	{ "-d", "--dir",      "Select a directory.", 's' /*1, .callback=opt_set_dir*/ },
+	{ "-h", "--help",     "Show help and quit."  }, 
+#if 0
+	{ "-x", "--no-fork",  "Leave in foreground.", },
+	{ NULL, "--describe", "Describe an audio stream."                 },
+#endif
 	{ .sentinel=1 }
 };
 
 
 /*main*/
-int main (int argc, char *argv[])
-{
-	/*Print banner and process options*/
+int main (int argc, char *argv[]) {
+	//Print banner and process options
 	print_version();
 
 	//Then go through and set each.
@@ -344,16 +378,17 @@ int main (int argc, char *argv[])
 		jerr( 0, "As currently written, specifying both --file and --dir makes no sense because " PROG " is operating in two disparate ways.  Specify just one of these options and we'll continue..." );
 	}
 
-	if (SDL_Init(SDL_INIT_AUDIO) < 0)
+	if (SDL_Init(SDL_INIT_AUDIO) < 0) {
 		jerr(0, "Couldn't initialize audio abstraction layer.\n");
+	}
 
-	/*Register signals and set up non-blocking reads*/
+	//Register signals and set up non-blocking reads
 	//signal(SIGSEGV, SIG_DFL);
 	signal(SIGINT, SIG_DFL);
 	int flags = fcntl(0, F_GETFL, 0);
 	fcntl(0, F_SETFL, flags | O_NONBLOCK);
 
-	/*Define a bunch of variables*/
+	//Define a bunch of variables
 	SDL_Event event;
 	pid_t pid;
 	DIR *dir;
@@ -364,7 +399,7 @@ int main (int argc, char *argv[])
 	uint8_t buf[WIDTH * HEIGHT]; //int32_t will accomodate unicode...
 	memset(buf, 0, WIDTH * HEIGHT);
 
-	/*Load and initialize the audio*/
+	//Load and initialize the audio
 #ifdef PLAY_EMBEDDED
 	uint8_t wav[] = {
 		#include "audio.c"
@@ -409,12 +444,6 @@ int main (int argc, char *argv[])
 		if (!settings.filename)
 			jerr(0, "No audio file supplied! (Try the --play flag to select one.)\n");
 	
-#if 0
-	vvvv_(settings.filename);
-exit(0);
-	//stb_vorbis_get_info
-#endif
-	
 		if (!SDL_LoadWAV(settings.filename, &(mv.as), &(mv.ap), &(mv.al))) 
 			jerr(0, "Failed to load audio file: %s\n", settings.filename);
 	}
@@ -425,6 +454,7 @@ exit(0);
 		_exit(0);
 	}
 
+	print_settings();
 #endif
 
 	/*Populate unknown data and describe the audio stream.*/
@@ -432,8 +462,9 @@ exit(0);
 	mv.as.userdata = &mv;
 
 	/*Open a device and play...*/
-	if (SDL_OpenAudio(&(mv.as), NULL) < 0)
+	if (SDL_OpenAudio(&(mv.as), NULL) < 0) {
 		jerr(0, "Failed to open audio stream: %s\n", SDL_GetError());
+	}
 
 	/*Show the dump*/
 	print_av(&mv);	
@@ -447,19 +478,21 @@ exit(0);
 		pid_buf[ii]=RNDCHR[i];
 	}
 
+ #ifndef NO_FORK 
 	/*Fork - suspend*/
 	if ((pid = (settings.nofork) ? 0 : fork()) == -1) {
 		jerr(0, "Error occurred while backgrounding: %s\n", strerror(errno));	
 	}
 	else if (!pid) {
+ #endif
 		/*Play and control playback.*/
 		int cts=0, m=0, gl = mv.al;
 		mv.vol=SDL_MIX_MAXVOLUME;
 		SDL_PauseAudio(mv.paused);
 		set_eat();
-		//clear();
-		/*Set the screen*/
+		clear();
 
+		/*Set the screen*/
 		while (mv.al) {
 			//clear();
 			//test_colors();
@@ -519,12 +552,14 @@ exit(0);
 		SDL_CloseAudio();
 		SDL_Quit();
 		_exit(0);
+ #ifndef NO_FORK
 	}
 	else if (pid) {
 		FILE *f = fopen(pid_buf, "w");
 		fprintf(f, "%d\n", pid);
 		fclose(f);
 	}
+ #endif
 
 	return 0;
 }
