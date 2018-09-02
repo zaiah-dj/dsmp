@@ -30,6 +30,7 @@ dsmp
 @end
  * -------------------------------------- */
 //#define _POSIX_C_SOURCE 2
+#define PROG "dsmp"
 #include "vendor/single.h"
 #include <stdio.h>
 #include <SDL/SDL.h>
@@ -334,18 +335,14 @@ int main (int argc, char *argv[])
 	//Then go through and set each.
 	( argc < 2 ) ? opt_usage( opts, "a", "Nothing to do.", 0 ) : opt_eval( opts, argc, argv );
 
-	int file_mode = 0, dir_mode = 0;
 	settings.loop = opt_set( opts, "--loop" ); 		
 	settings.nofork = opt_set( opts, "--no-fork" ); 		
 	settings.filename = opt_set( opts, "--file" ) ? opt_get(opts, "--file").s : NULL;
 	dsmpDirname = opt_set( opts, "--dir" ) ? opt_get( opts, "--dir" ).s : NULL;
 
-	nsprintf( settings.filename );
-	nsprintf( dsmpDirname );
-	niprintf( settings.nofork );
-	niprintf( settings.loop );
-
-exit(0);
+	if ( settings.filename && dsmpDirname ) {
+		jerr( 0, "As currently written, specifying both --file and --dir makes no sense because " PROG " is operating in two disparate ways.  Specify just one of these options and we'll continue..." );
+	}
 
 	if (SDL_Init(SDL_INIT_AUDIO) < 0)
 		jerr(0, "Couldn't initialize audio abstraction layer.\n");
@@ -382,7 +379,7 @@ exit(0);
 	fprintf(stderr, "PLAY_EMBEDDED is enabled in build flags. Please disable it to play other files.\n");
 #else
 
-	if (dir_mode) {
+	if ( dsmpDirname ) {
 		if (!(dir = opendir(dsmpDirname)))
 			jerr(0, "Directory open failed...");
 
@@ -407,7 +404,7 @@ exit(0);
 		//tracks_printf(track);
 	}
 
-	else if (file_mode) {
+	else if ( settings.filename ) {
 		/*Die if there are no files in the buffer (for now)*/
 		if (!settings.filename)
 			jerr(0, "No audio file supplied! (Try the --play flag to select one.)\n");
@@ -499,7 +496,7 @@ exit(0);
 					mv.ap -= (gl - mv.al) + re, mv.al = (gl - re);
 				SDL_PauseAudio(0);
 			}
-			if (dir_mode) {
+			if ( dsmpDirname ) {
 				if (key == 'j' || key == 'k') {
 					if (key == 'j')
 						track -= (!track->hash) ? 0 : 1;
