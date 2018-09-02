@@ -361,7 +361,7 @@ Option opts[] = {
 };
 
 
-/*main*/
+//Main
 int main (int argc, char *argv[]) {
 	//Print banner and process options
 	print_version();

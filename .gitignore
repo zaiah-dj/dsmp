@@ -25,3 +25,6 @@ dsmp
 # Dumps
 *stackdump
 vgcore*
+
+# So many personal notes that just aren't needed anywhere else, maybe a dev branch?
+TODO
