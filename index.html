@@ -1,0 +1,147 @@
+<h1>dsmp</h1>
+
+<p><img src="" title="img/icon.png" alt="Download" /></p>
+
+<p>dsmp is a simple command line media player that uses SDL for audio sequencing.</p>
+
+<h2>Setup and Dependencies</h2>
+
+<p>dsmp depends on SDL 1.2 (ancient, I know) and some sort of Unix subsystem.</p>
+
+<p>To build dsmp, download the latest copy and run:</p>
+
+<pre>
+$ make && sudo make install
+</pre>
+
+
+<h2>Usage</h2>
+
+<p>Here is the complete list of CLI options thus far:</p>
+
+<table>
+<thead>
+<tr>
+<th> Flag                 </th>
+<th>  Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-f, &ndash;file (arg)      </td>
+<td>  Play one file from the command line.</td>
+</tr>
+<tr>
+<td>-l, &ndash;loop            </td>
+<td>  Enable looping.</td>
+</tr>
+<tr>
+<td>-d, &ndash;dir (arg)       </td>
+<td>  Play all audio files in a chosen directory.</td>
+</tr>
+<tr>
+<td>-h, &ndash;help            </td>
+<td>  Show help and quit.</td>
+</tr>
+</tbody>
+</table>
+
+
+<p>Within the app, there are a few simple controls:</p>
+
+<table>
+<thead>
+<tr>
+<th> Command   </th>
+<th> Description                              </th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>  P        </td>
+<td> Pause playing audio.                     </td>
+</tr>
+<tr>
+<td>  A        </td>
+<td> Seek backwards in a song.                </td>
+</tr>
+<tr>
+<td>  S        </td>
+<td> Seek forwards in a song.                 </td>
+</tr>
+<tr>
+<td>  W        </td>
+<td> Lower volume.                            </td>
+</tr>
+<tr>
+<td>  E        </td>
+<td> Increase volume.                         </td>
+</tr>
+<tr>
+<td>  R        </td>
+<td> Start at the beginning?                  </td>
+</tr>
+<tr>
+<td>  J        </td>
+<td> Move to the next song in a directory.    </td>
+</tr>
+<tr>
+<td>  K        </td>
+<td> Move to the previous song in a directory.</td>
+</tr>
+</tbody>
+</table>
+
+
+<h2>Screenshots</h2>
+
+<p><img src="" title="img/icon.png" alt="Pretty Colors" /></p>
+
+<h2>Extension and Hacking</h2>
+
+<p>Flags that are supported:</p>
+
+<table>
+<thead>
+<tr>
+<th> Flag      </th>
+<th> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-DENABLE_VERSION_BANNER </td>
+<td> Turns version announcement on or off.</td>
+</tr>
+<tr>
+<td>-DPLAY_EMBEDDED         </td>
+<td> Use embedded audio instead of an external audio file.</td>
+</tr>
+<tr>
+<td>-DNO_FORK </td>
+<td> Do not compile the ability to fork into the background.</td>
+</tr>
+<tr>
+<td>-DNO_KEY </td>
+<td> Do not compile the ability to process keypresses.</td>
+</tr>
+</tbody>
+</table>
+
+
+<h2>Bugs / Issues</h2>
+
+<p>dsmp is a project I get very little time to work on.  With this being the case there are a few issues I have not had time to look at:</p>
+
+<ul>
+<li>Crashes on skip forward and backward</li>
+<li>Cannot play anything but WAV files, this is not good</li>
+<li>Get rid of SDL dependency</li>
+</ul>
+
+
+<!-- Style and more... -->
+
+
+<p><link rel="stylesheet" type=text/css href="style.css">
+<link rel="stylesheet" type=text/css href="https://fonts.googleapis.com/css?family=Righteous|PT+Serif"></p>

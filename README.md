@@ -1,6 +1,18 @@
-dsmp
-----
-Simple command line media player that uses SDL for audio sequencing.
+# dsmp
+
+![Download]( "img/icon.png" )
+
+dsmp is a simple command line media player that uses SDL for audio sequencing.
+
+
+## Setup and Dependencies
+
+dsmp depends on SDL 1.2 (ancient, I know) and some sort of Unix subsystem.
+
+To build dsmp, download the latest copy and run:
+<pre>
+$ make && sudo make install
+</pre>
 
 
 ## Usage
@@ -19,14 +31,14 @@ Within the app, there are a few simple controls:
 
 | Command   | Description                              |
 | ----------|------------------------------------------|
-| p         | Pause playing audio.                     |  
-| a         | Seek backwards in a song.                |  
-| s         | Seek forwards in a song.                 |  
-| w         | Lower volume.                            |  
-| e         | Increase volume.                         |
-| r         | Start at the beginning?                  |  
-| j         | Move to the next song in a directory.    |  
-| k         | Move to the previous song in a directory.|  
+|  P        | Pause playing audio.                     |  
+|  A        | Seek backwards in a song.                |  
+|  S        | Seek forwards in a song.                 |  
+|  W        | Lower volume.                            |  
+|  E        | Increase volume.                         |
+|  R        | Start at the beginning?                  |  
+|  J        | Move to the next song in a directory.    |  
+|  K        | Move to the previous song in a directory.|  
 
 
 
@@ -49,13 +61,10 @@ Flags that are supported:
 
 
 
-## Caveats
+## Bugs / Issues
 
-Sadly, there are a few right now and the list will be maintained at:
+dsmp is a project I get very little time to work on.  With this being the case there are a few issues I have not had time to look at:
 
-[Bug List]( http://ramarcollins.com/dsmp/bugs.html )
-
-Since I don't have time to get to it right now, let's maintain it here:
 - Crashes on skip forward and backward
 - Cannot play anything but WAV files, this is not good
 - Get rid of SDL dependency	
@@ -63,5 +72,5 @@ Since I don't have time to get to it right now, let's maintain it here:
 
 
 <!-- Style and more... -->
-<link rel="stylesheet" type=text/css href="dsmp.css">
-<link rel="stylesheet" type=text/css href="https://fonts.googleapis.com/css?family=Righteous">
+<link rel="stylesheet" type=text/css href="style.css">
+<link rel="stylesheet" type=text/css href="https://fonts.googleapis.com/css?family=Righteous|PT+Serif">

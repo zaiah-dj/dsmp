@@ -1,0 +1,43 @@
+/*dsmp style sheet*/
+html, p {
+	font-family: "PT Serif", "Georgia", serif;
+	background-color: #eff4fc;
+	font-size: 1.2em;
+}
+
+p, pre {
+	margin-bottom: 40px;
+}
+
+pre {
+	font-family: "Lucida Console", monospace, sans-serif;
+	background-color: #618bce;
+	color: #eff4fc;
+	padding: 10px;
+}
+
+h1 {
+	font-size: 100px;
+	font-family: "Righteous", sans-serif;
+}
+
+body {
+	width: 80%;
+	min-width: 300px;
+	margin: 0 auto;
+}
+
+table {
+	border: 2px solid black;
+	width: 100%;
+}
+
+table tr,
+table td {
+	border: 1px solid black;
+	padding: 3px;
+}
+
+table tr td:nth-child(1) {
+	font-family: "Lucida Console", monospace, sans-serif;
+}

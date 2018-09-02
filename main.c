@@ -40,8 +40,9 @@ dsmp
 #ifndef PATH_MAX
  #define PATH_MAX 2048
 #endif
-#define NO_FORK
-#define NO_KEY
+
+//#define NO_FORK
+//#define NO_KEY
 
 #include "vendor/single.h"
 #include <stdio.h>
@@ -68,7 +69,7 @@ dsmp
 	while (1) { fprintf(stderr, "ERR: "); fprintf(stderr, __VA_ARGS__); return stat; }
 
 #ifdef ENABLE_LOG
- #define log(f, ...) fprintf((f == NULL) ? stderr : f, __VA_ARGS__);
+ #define log(...) fprintf( stderr, __VA_ARGS__ )
 #else
  #define log(...)
 #endif
@@ -93,7 +94,6 @@ dsmp
 			break; \
 	}
 
-/*Shorthand*/
 //Increment the current position of audio buffer by samples received and some other incrementor (i)
 #define cp(i) *(v->ap + v->sp + i) 
 
@@ -430,22 +430,25 @@ int main (int argc, char *argv[]) {
 		fprintf(stderr, "Directory '%s' contains %d files\n", dsmpDirname, count); 
 		fprintf(stderr, "First file: %s\n", track->filename);
 		
-		if (closedir(dir) == -1)
+		if (closedir(dir) == -1) {
 			jerr(0, "Error closing directory.");
-
-		if (!SDL_LoadWAV(track->filename, &(mv.as), &(mv.ap), &(mv.al))) 
-			jerr(0, "Failed to load audio file: %s\n", track->filename);
+		}
 	
+		if (!SDL_LoadWAV(track->filename, &(mv.as), &(mv.ap), &(mv.al))) {
+			jerr(0, "Failed to load audio file: %s\n", track->filename);
+		}	
 		//tracks_printf(track);
 	}
 
 	else if ( settings.filename ) {
-		/*Die if there are no files in the buffer (for now)*/
-		if (!settings.filename)
+		//Die if there are no files in the buffer (for now)
+		if ( !settings.filename ) {
 			jerr(0, "No audio file supplied! (Try the --play flag to select one.)\n");
+		}
 	
-		if (!SDL_LoadWAV(settings.filename, &(mv.as), &(mv.ap), &(mv.al))) 
+		if (!SDL_LoadWAV(settings.filename, &(mv.as), &(mv.ap), &(mv.al))) {
 			jerr(0, "Failed to load audio file: %s\n", settings.filename);
+		}
 	}
 
 	else {
@@ -457,19 +460,20 @@ int main (int argc, char *argv[]) {
 	print_settings();
 #endif
 
-	/*Populate unknown data and describe the audio stream.*/
+	//Populate unknown data and describe the audio stream.
 	mv.as.callback = audio_callback;
 	mv.as.userdata = &mv;
 
-	/*Open a device and play...*/
-	if (SDL_OpenAudio(&(mv.as), NULL) < 0) {
+	//Open a device and play...
+	if ( SDL_OpenAudio(&(mv.as), NULL) < 0) {
 		jerr(0, "Failed to open audio stream: %s\n", SDL_GetError());
 	}
 
-	/*Show the dump*/
+	//Show the dump
 	print_av(&mv);	
 
-	/*Create a random file for you and for me.*/	
+ #ifndef NO_FORK 
+	//Create a random file for you and for me.
 	srand(mv.al);
 	pid_buf[PID_FILE_NAME_LENGTH-1]='\0';
 	for (int ii=5; ii<PID_FILE_NAME_LENGTH-2; ii++) {
@@ -478,22 +482,21 @@ int main (int argc, char *argv[]) {
 		pid_buf[ii]=RNDCHR[i];
 	}
 
- #ifndef NO_FORK 
-	/*Fork - suspend*/
+	//Fork - suspend
 	if ((pid = (settings.nofork) ? 0 : fork()) == -1) {
 		jerr(0, "Error occurred while backgrounding: %s\n", strerror(errno));	
 	}
 	else if (!pid) {
  #endif
-		/*Play and control playback.*/
+		//Play and control playback.
 		int cts=0, m=0, gl = mv.al;
 		mv.vol=SDL_MIX_MAXVOLUME;
 		SDL_PauseAudio(mv.paused);
 		set_eat();
 		clear();
 
-		/*Set the screen*/
-		while (mv.al) {
+		//Set the screen
+		while ( mv.al ) {
 			//clear();
 			//test_colors();
 			//test_bar();
@@ -501,46 +504,95 @@ int main (int argc, char *argv[]) {
 			SDL_Delay(10);
 			mv.sp += (mv.sp > 44100) ? -mv.sp : 100;
 
-			/*Get a keypress*/
-			if (read(0, &key, 1) > -1) {
-				/*fprintf(stderr, "Got code '%d'\n", key)*/;
-			}
+			//A crude way to handle moving to the next track?
+			if ( ( mv.al < 200 ) && ( dsmpDirname ) ) {
+				//track += ((track + 1)->sentinel) ? -(count-1) : 1;
+				log( "current audio: %p, next audio: %p\n", (void*)track, (void*)(track + 1) );
+				int proc = ( track + 1 )->sentinel; 
 
-			/*Loop a playing track*/
-			if (settings.loop && (mv.al < 10)) {
-				mv.ap -= (gl - re)
-			, mv.al = (gl - re); 
-			}
-
-			/*Handle some degree of rewinds...*/
-			if (key == 'p')
-				SDL_PauseAudio((mv.paused += (!mv.paused) ? 1 : -1));	
-			if (key == 'a')
-				mv.ap -= mv.sp/2, mv.al += mv.sp/2;
-			if (key == 's')
-				mv.ap += mv.sp/2, mv.al -= mv.sp/2;
-			if (key == 'w')
-				mv.vol -= (!mv.vol) ? 0 : 10;
-			if (key == 'e') 
-				mv.vol += (mv.vol == SDL_MIX_MAXVOLUME) ? 0 : 10;
-			if (key == 'r') {
+				//Decide how to proceed between the tracks
+				if ( proc && !settings.loop ) {
+					fprintf( stderr, "Thanks for using dsmp, bye!\n" );
+					break;
+				}
+				else if ( proc && settings.loop ) { 
+					track += -(count - 1);
+				}
+				else { 
+					track++;
+				}
+		
+				//Tear down the stream and reinitialize everything	
 				pause_if_playing();
-				if (mv.al > 5)
+				mv.ap = NULL;
+				if ( !SDL_LoadWAV(track->filename, &(mv.as), &(mv.ap), &(mv.al)) ) { 
+					jerr(0, "Failed to load audio file: %s\n", track->filename);
+				}
+				SDL_PauseAudio(0);
+				continue;
+			}
+
+			//Process keypresses
+			if (read(0, &key, 1) > -1) {
+				log( "Got code '%d'\n", key);
+			}
+
+			//Loop a playing track
+			if (settings.loop && (mv.al < 10)) {
+				mv.ap -= (gl - re);
+			  mv.al = (gl - re); 
+			}
+
+			//Handle some degree of rewinds...
+			if (key == 'l') {
+				settings.loop = settings.loop ? 0 : 1;	
+				log( "'L' pressed: looping activated!\n" );
+			}
+			if (key == 'p') {
+				SDL_PauseAudio((mv.paused += (!mv.paused) ? 1 : -1));	
+				log( "'P' pressed: audio paused.\n" );
+			}
+			if (key == 'a') {
+				mv.ap -= mv.sp/2, mv.al += mv.sp/2;
+				log( "'A' pressed: moved backwards through audio.\n" );
+			}
+			if (key == 's') {
+				mv.ap += mv.sp/2, mv.al -= mv.sp/2;
+				log( "'S' pressed: moved forwards through audio.\n" );
+			}
+			if (key == 'w') {
+				mv.vol -= (!mv.vol) ? 0 : 10;
+				log( "'W' pressed: volume lowered.\n" );
+			}
+			if (key == 'e') {
+				mv.vol += (mv.vol == SDL_MIX_MAXVOLUME) ? 0 : 10;
+				log( "'E' pressed: volume increased.\n" );
+			}
+			if (key == 'r') {
+				log( "'R' pressed: current song rewinded to beginning.\n" );
+				pause_if_playing();
+				if (mv.al > 10) {
 					mv.ap -= (gl - mv.al) + re, mv.al = (gl - re);
+				}
 				SDL_PauseAudio(0);
 			}
 			if ( dsmpDirname ) {
 				if (key == 'j' || key == 'k') {
-					if (key == 'j')
+					if (key == 'j') {
 						track -= (!track->hash) ? 0 : 1;
-					else
+						log( "'J' pressed: next song selected in list.\n" );
+					}
+					else {
 						track += ((track + 1)->sentinel) ? -(count-1) : 1;
-					fprintf(stderr, "Now playing:      %s\n", track->filename);
-					fprintf(stderr, "hash %d, sentinel %d\n", track->hash, track->sentinel);
+						log( "'K' pressed: previous song selected in list.\n" );
+					}
+					log( "Now playing:      %s\n", track->filename );
+					log( "hash %d, sentinel %d\n", track->hash, track->sentinel );
 					pause_if_playing();
 					mv.ap = NULL;
-					if (!SDL_LoadWAV(track->filename, &(mv.as), &(mv.ap), &(mv.al))) 
+					if ( !SDL_LoadWAV(track->filename, &(mv.as), &(mv.ap), &(mv.al)) ) {
 						jerr(0, "Failed to load audio file: %s\n", track->filename);
+					}
 					SDL_PauseAudio(0);
 				}
 			}
