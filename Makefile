@@ -3,7 +3,7 @@ NAME = dsmp
 SRC = vendor/single.c main.c
 OBJ = ${SRC:.c=.o}
 PREFIX = /usr/local
-PKGDIR = $(NAME).$(VERSION)
+PKGDIR = $(NAME)-$(VERSION)
 VERSION = 0.3
 MANPREFIX = ${PREFIX}/share/man
 LDDIRS = -L$(PREFIX)/lib
@@ -12,7 +12,10 @@ DFLAGS = -DSQROOGE_H -DENABLE_VERSION_BANNER -DVERSION="$(VERSION)" -DPRINT_ANIM
 CC = gcc
 CFLAGS = -g -Wall -Werror -Wno-maybe-uninitialized -Wno-unused -ansi -std=c99 -Wno-deprecated-declarations -O2 -pedantic-errors $(LDDIRS) $(LDFLAGS) $(DFLAGS) -Wno-strict-aliasing -Wno-format-truncation
 FLAGS = -p dte.wav -l -f 60 
-IGNORE = archive/* vendor/*
+WILDCARD = *
+IGNORE = archive/$(WILDCARD) vendor/$(WILDCARD)
+
+.PHONY: all options clean install uninstall
 
 $(NAME): ${OBJ}
 	@echo CC -o $@ single.o main.o ${CFLAGS}
@@ -26,6 +29,8 @@ clean:
 	@echo Cleaning
 	@rm -f $(NAME) *.o *.so *.dll
 
+install:
+	@cp $(NAME) $(PREFIX)/bin/ 
 
 #if 0
 debug:
@@ -50,17 +55,17 @@ veryclean:
 pkg: clean
 pkg: veryclean 
 pkg:
+	@test -d $(PKGDIR) && rm -rf $(PKGDIR) || echo 'no problem'
 	@mkdir $(PKGDIR)/
 	@cp *.c README.md CHANGELOG style.css $(PKGDIR)/
 	@cp -r vendor $(PKGDIR)/
 	@cp -r img $(PKGDIR)/
-	echo sed "{ s/#[^if,^endif].$(WILDCARD)//; }" Makefile cpp ${PKGDEBUG:2>/dev/null} sed "{ /^#/d; s/^ /\t/ }" > $(PKGDIR)/Makefile
+	echo sed "{ s/#[^if,^endif].$(WILDCARD)//; }" Makefile cpp 2>/dev/stderr sed "{ /^#/d; s/^ /\t/ }" > $(PKGDIR)/Makefile
 	@sed "{ s/#[^if,^endif].$(WILDCARD)//; }" Makefile | \
-		cpp ${PKGDEBUG:-2>/dev/null} | \
-		sed "{ /^#/d; s/^ /\t/ }" > $(PKGDIR)/Makefile
-	@echo tar chzf $(PKGFILE) $(PKGDIR)
-	@tar chzf $(PKGFILE) $(PKGDIR)
-	@rm -rf $(PKGDIR)
+		cpp 2>/dev/stderr | \
+		sed "{ /^#/d; s/^ /\t/; }" > $(PKGDIR)/Makefile
+	@echo tar chzf $(PKGDIR).tar.gz $(PKGDIR)
+	@tar chzf $(PKGDIR).tar.gz $(PKGDIR)
 
 doc:
 	git checkout gh-pages
@@ -72,9 +77,6 @@ doc:
 
 html:
 	markdown -o index.html README.md
+
 #endif
 
-install:
-	@cp $(NAME) $(PREFIX)/bin/ 
-
-.PHONY: all options clean dist install uninstall permissions archive
