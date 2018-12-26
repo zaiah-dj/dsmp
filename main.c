@@ -2,32 +2,19 @@
 dsmp
 ----
 
-@summary
-	Simple command line media player
-@end
+Simple command line media player
 
-@usage
-	-l, --loop      Enable looping.
-			--describe	Describe an audio stream.
-	-f, --file      Choose a file to play.
-	-x, --no-fork   Leave in the foreground.
-	-d, --dir       Select a directory.
-@end
+Usage
+=====
+-l, --loop      Enable looping.
+		--describe	Describe an audio stream.
+-f, --file      Choose a file to play.
+-x, --no-fork   Leave in the foreground.
+-d, --dir       Select a directory.
 
-@building
-	All you need is:
-	make && make install 
-@end
-
-@todo
-	- Crashes on skip forward and backward
-	- Cannot play anything but WAV files, this is not good
-	- Get rid of SDL dependency	
-@end
-
-@changelog
-	Simple command line media player
-@end
+Notes / Todo
+============
+- Integrate termios libs and signals into this code - TIOCGWINSZ - struct winsize **argp
  * -------------------------------------- */
 //#define _POSIX_C_SOURCE 2
 #define PROG "dsmp"
@@ -389,7 +376,7 @@ int main (int argc, char *argv[]) {
 	fcntl(0, F_SETFL, flags | O_NONBLOCK);
 
 	//Define a bunch of variables
-	SDL_Event event;
+	SDL_Event event = {0};
 	pid_t pid;
 	DIR *dir;
 	int32_t count=0;

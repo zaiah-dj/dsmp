@@ -9,8 +9,11 @@ MANPREFIX = ${PREFIX}/share/man
 LDDIRS = -L$(PREFIX)/lib
 LDFLAGS = -lSDL -lm
 DFLAGS = -DSQROOGE_H -DENABLE_VERSION_BANNER -DVERSION="$(VERSION)" -DPRINT_ANIMATION_INFO -DENABLE_LOG -DNO_FORK #-DPLAY_EMBEDDED -DNO_KEY
-CC = gcc
-CFLAGS = -g -Wall -Werror -Wno-maybe-uninitialized -Wno-unused -ansi -std=c99 -Wno-deprecated-declarations -O2 -pedantic-errors $(LDDIRS) $(LDFLAGS) $(DFLAGS) -Wno-strict-aliasing -Wno-format-truncation
+#CC = gcc
+#CFLAGS = -g -Wall -Werror -Wno-maybe-uninitialized -Wno-unused -ansi -std=c99 -Wno-deprecated-declarations -O2 -pedantic-errors $(LDDIRS) $(LDFLAGS) $(DFLAGS) -Wno-strict-aliasing -Wno-format-truncation
+CC = clang
+LDFLAGS = -lSDL2 -lm
+CFLAGS = -g -Wall -Werror -Wno-unused -Wno-unused-command-line-argument -std=c99 -Wno-deprecated-declarations -O2 -pedantic-errors -Wno-strict-aliasing $(LDFLAGS) $(DFLAGS) 
 FLAGS = -p dte.wav -l -f 60 
 WILDCARD = *
 IGNORE = archive/$(WILDCARD) vendor/$(WILDCARD)
@@ -33,6 +36,10 @@ install:
 	@cp $(NAME) $(PREFIX)/bin/ 
 
 #if 0
+guionly: LDFLAGS = -lSDL2 -lm
+guionly:
+	$(CC) -o gui gui.c $(LDFLAGS)
+
 debug:
 	@gdb 2>/dev/null || echo "Error: Dependency 'GDB' not present!"; gdb
 	@echo gdb -ex run --args ./$(NAME) $(FLAGS)

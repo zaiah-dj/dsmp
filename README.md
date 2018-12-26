@@ -61,11 +61,35 @@ Flags that are supported:
 |-DENABLE_LOG | Tell me everything that the program is doing, all the time.
 
 
-## Bugs / Issues
+## Bugs / Issues / Nice to Have
 
-- Crashes on skip forward and backward
-- Cannot play anything but WAV files, this is not good
-- Get rid of SDL dependency	
+### Bugs 
+
+- 2018/12/26 - Has some trouble playing WAV files in a standard XFCE terminal.
+- 2018/12/26 - Reports read error on finished play, should unload gracefully
+- 2018/12/26 - Isolate and remove all underruns, I shouldn't need a low latency kernel to get this done 
+- <s>2018/10/?? - Crashes on skip forward and backward</s>
+
+
+### Nice to Have
+
+- get rid of SDL dependency	
+- work on a real GUI
+- make a really basic terminal style GUI for this
+- add the ability to save playlists
+- add support for ogg
+- add support for mp3 
+- add support for flac
+-	switch between console and window modes
+- waveforms in a console
+- send data to sockets so that you can see what's going on from term
+- consider some of these awesome guis if getting rid of SDL 
+	- https://github.com/vurtun/nuklear
+	- https://github.com/richgel999/miniz
+	- https://github.com/nemequ/munit
+	- https://github.com/nothings/stb
+- Look into direct frame buffer draw for work with terminals of all types 
+	- http://www.cubieforums.com/index.php?topic=33.0
 
 
 ## Author Information
